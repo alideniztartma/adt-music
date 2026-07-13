@@ -6,14 +6,14 @@ If you copy, adapt, or reuse any part of the source code from the **ADT Music** 
 
 ## 1. Musixmatch Lyrics Integration
 If you reuse the Musixmatch lyrics scraping or signature logic:
-* **Attribution**: You must state in your repository's documentation and source headers that the logic was obtained from [ADT Music](https://github.com/vivizzz007/adt-music).
+* **Attribution**: You must state in your repository's documentation and source headers that the logic was obtained from [ADT Music](https://github.com/alideniztartma/adt-music).
 * **UI Credit**: You must clearly display attribution inside your application's User Interface (e.g., on the lyrics viewer or lyrics settings screen). The provider name must be labeled as **`adtmusic lyrics provider`** (or specify that lyrics are powered/provided by ADT Music).
 
 ---
 
 ## 2. JioSaavn Audio Streaming Integration
 If you reuse the JioSaavn audio streaming, search, or decryption logic:
-* **Attribution**: You must state in your repository's documentation and source headers that the logic was obtained from [ADT Music](https://github.com/vivizzz007/adt-music).
+* **Attribution**: You must state in your repository's documentation and source headers that the logic was obtained from [ADT Music](https://github.com/alideniztartma/adt-music).
 * **UI Credit**: You must clearly display attribution inside your application's User Interface (e.g., on the stream quality selection or audio source settings screen). The source must be labeled as **`JioSaavn (via adtmusic)`** (or specify that the streaming service is powered by ADT Music).
 
 ---

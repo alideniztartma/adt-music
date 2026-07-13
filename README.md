@@ -7,14 +7,14 @@
   <h3>More Than Just Music — Your Ultimate Audio Experience</h3>
 
   <p>
-    <a href="https://github.com/vivizzz007/adt-music/releases">
-      <img src="https://img.shields.io/github/v/release/vivizzz007/adt-music?label=Download&style=for-the-badge&color=4CAF50" alt="Download Latest">
+    <a href="https://github.com/alideniztartma/adt-music/releases">
+      <img src="https://img.shields.io/github/v/release/alideniztartma/adt-music?label=Download&style=for-the-badge&color=4CAF50" alt="Download Latest">
     </a>
-    <a href="https://github.com/vivizzz007/adt-music/releases">
-      <img src="https://img.shields.io/github/downloads/vivizzz007/adt-music/total?style=for-the-badge&color=blue" alt="Downloads">
+    <a href="https://github.com/alideniztartma/adt-music/releases">
+      <img src="https://img.shields.io/github/downloads/alideniztartma/adt-music/total?style=for-the-badge&color=blue" alt="Downloads">
     </a>
     <a href="LICENSE">
-      <img src="https://img.shields.io/github/license/vivizzz007/adt-music?style=for-the-badge" alt="License">
+      <img src="https://img.shields.io/github/license/alideniztartma/adt-music?style=for-the-badge" alt="License">
     </a>
     <a href="https://ko-fi.com/vividhpashokan">
       <img src="https://img.shields.io/badge/Support-Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi">
@@ -54,39 +54,39 @@
   <tr valign="top">
     <td align="center">
       <b>Player</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/1.png?raw=true" width="220" alt="Player Screen 1" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/1.png?raw=true" width="220" alt="Player Screen 1" />
     </td>
     <td align="center">
       <b>Player</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/2.png?raw=true" width="220" alt="Player Screen 2" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/2.png?raw=true" width="220" alt="Player Screen 2" />
     </td>
     <td align="center">
       <b>Artist Screen</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/3.png?raw=true" width="220" alt="Artist Screen" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/3.png?raw=true" width="220" alt="Artist Screen" />
     </td>
   </tr>
   <tr valign="top">
     <td align="center">
       <b>Album Page</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/4.png?raw=true" width="220" alt="Album Page" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/4.png?raw=true" width="220" alt="Album Page" />
     </td>
     <td align="center">
       <b>Search Section</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/5.png?raw=true" width="220" alt="Search Section" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/5.png?raw=true" width="220" alt="Search Section" />
     </td>
     <td align="center">
       <b>Home Page</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/6.png?raw=true" width="220" alt="Home Page" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/6.png?raw=true" width="220" alt="Home Page" />
     </td>
   </tr>
   <tr valign="top">
     <td align="center">
       <b>Built-in Updater</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/7.png?raw=true" width="220" alt="Built-in Updater" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/7.png?raw=true" width="220" alt="Built-in Updater" />
     </td>
     <td align="center">
       <b>Audio Control Section</b><br><br>
-      <img src="https://github.com/vivizzz007/adt-music/blob/main/NEW-UI/8.png?raw=true" width="220" alt="Audio Control Section" />
+      <img src="https://github.com/alideniztartma/adt-music/blob/main/NEW-UI/8.png?raw=true" width="220" alt="Audio Control Section" />
     </td>
     <td></td>
   </tr>
@@ -245,9 +245,9 @@
         </a>
         <br><br>
         <sub>
-          <a href="https://github.com/vivizzz007/adt-music/issues">🐞 Report Bugs</a> &nbsp;•&nbsp;
-          <a href="https://github.com/vivizzz007/adt-music/discussions">💬 Discussions</a> &nbsp;•&nbsp;
-          <a href="https://github.com/vivizzz007/adt-music/releases">🚀 Releases</a>
+          <a href="https://github.com/alideniztartma/adt-music/issues">🐞 Report Bugs</a> &nbsp;•&nbsp;
+          <a href="https://github.com/alideniztartma/adt-music/discussions">💬 Discussions</a> &nbsp;•&nbsp;
+          <a href="https://github.com/alideniztartma/adt-music/releases">🚀 Releases</a>
         </sub>
       </td>
     </tr>

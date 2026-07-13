@@ -1,0 +1,88 @@
+name: Android Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-cleanup: on-success
+
+      - name: Setup FFTW for Android
+        uses: ./.github/actions/setup-fftw
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Generate debug keystore
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Build production release APK
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+        run: ./gradlew --console=plain --warning-mode summary --no-configuration-cache assembleUniversalGmsRelease -x lint
+
+      - name: Sign release APK
+        id: sign_apk
+        uses: ilharp/sign-android-release@v2.0.0
+        with:
+          releaseDir: app/build/outputs/apk/universalGms/release/
+          signingKey: ${{ secrets.KEYSTORE }}
+          keyAlias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+          buildToolsVersion: 35.0.0
+
+      - name: Prepare release artifact
+        id: prepare_artifact
+        run: |
+          mkdir -p release-artifacts
+          if [ -z "${{ steps.sign_apk.outputs.signedFile }}" ]; then
+            echo "No APK generated." >&2
+            exit 1
+          fi
+          cp "${{ steps.sign_apk.outputs.signedFile }}" release-artifacts/adt.apk
+          echo "apk_path=release-artifacts/adt.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release and upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ADT Music ${{ github.ref_name }}
+          generate_release_notes: true
+          files: ${{ steps.prepare_artifact.outputs.apk_path }}
