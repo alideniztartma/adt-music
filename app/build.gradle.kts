@@ -10,7 +10,7 @@ if (localPropertiesFile.exists()) {
 plugins {
     id("com.android.application")
     id("dagger.hilt.android.plugin")
-    alias(libs.plugins.kotlin.ksp)
+    id("com.google.devtools.ksp")
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.protobufPlugin)
