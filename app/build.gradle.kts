@@ -17,12 +17,12 @@ plugins {
 }
 
 android {
-    namespace = "com.music.vivi"
+    namespace = "com.music.adt"
     compileSdk = 37
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        applicationId = "com.vivi.vivimusic"
+        applicationId = "com.adt.adtmusic"
         minSdk = 26
         targetSdk = 37
         versionCode = 74
@@ -283,7 +283,7 @@ dependencies {
     implementation(project(":shazamkit"))
     implementation(project(":artistvideo"))
     implementation(project(":applecanvas"))
-    implementation(project(":vivimusiccanvas"))
+    implementation(project(":adtmusiccanvas"))
     implementation(project(":paxsenixlyrics"))
     implementation(project(":jiosaavn"))
     implementation(project(":spotify"))

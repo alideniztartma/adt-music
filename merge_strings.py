@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 
-metro_path = r'C:\Vividh\vivimusic-13.1.1\app\src\main\res\values\strings.xml'
-alpha_path = r'C:\Vividh\vivimusic-13.1.1\vivi-music-alpha\app\src\main\res\values\strings.xml'
+metro_path = r'C:\Vividh\adtmusic-13.1.1\app\src\main\res\values\strings.xml'
+alpha_path = r'C:\Vividh\adtmusic-13.1.1\adt-music-alpha\app\src\main\res\values\strings.xml'
 
 ET.register_namespace('', 'http://schemas.android.com/tools')
 

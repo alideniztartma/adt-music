@@ -1,7 +1,7 @@
 package com.music.paxsenix
 
 import android.content.Context
-import com.music.vivi.betterlyrics.TTMLParser
+import com.music.adt.betterlyrics.TTMLParser
 import com.music.paxsenix.models.AppleMusicSearchResponse
 import com.music.paxsenix.models.LyricsResponse
 import com.music.paxsenix.models.SearchResult
@@ -62,7 +62,7 @@ object Paxsenix {
 
                 defaultRequest {
                     url("https://lyrics.paxsenix.org")
-                    header("User-Agent", "ViviMusic/$appVersion")
+                    header("User-Agent", "ADTMusic/$appVersion")
                 }
 
                 expectSuccess = true

@@ -1,4 +1,4 @@
-Vivi Music Initial Release
+ADT Music Initial Release
 
      Play music/videos from YouTube & YouTube Music (ad-free)
 
