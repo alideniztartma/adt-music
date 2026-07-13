@@ -11,7 +11,7 @@ plugins {
     id("com.android.application")
     id("dagger.hilt.android.plugin")
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.compose.compiler)
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.protobuf")
 }
