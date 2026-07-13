@@ -9,20 +9,20 @@ if (localPropertiesFile.exists()) {
 }
 plugins {
     id("com.android.application")
-    alias(libs.plugins.hilt)
-    alias(libs.plugins.kotlin.ksp)
-    alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.protobufPlugin)
+    id("dagger.hilt.android.plugin")
+    id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.protobuf")
 }
 
 android {
-    namespace = "com.music.vivi"
+    namespace = "com.music.adt"
     compileSdk = 37
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        applicationId = "com.vivi.vivimusic"
+        applicationId = "com.adt.adtmusic"
         minSdk = 26
         targetSdk = 37
         versionCode = 74
@@ -283,7 +283,7 @@ dependencies {
     implementation(project(":shazamkit"))
     implementation(project(":artistvideo"))
     implementation(project(":applecanvas"))
-    implementation(project(":vivimusiccanvas"))
+    implementation(project(":adtmusiccanvas"))
     implementation(project(":paxsenixlyrics"))
     implementation(project(":jiosaavn"))
     implementation(project(":spotify"))
@@ -309,4 +309,3 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.androidx.core.splashscreen)
 }
-

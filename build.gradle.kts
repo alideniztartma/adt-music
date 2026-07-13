@@ -1,10 +1,3 @@
-plugins {
-    alias(libs.plugins.hilt) apply (false)
-    alias(libs.plugins.kotlin.ksp) apply (false)
-    alias(libs.plugins.kotlin.serialization) apply false
-    alias(libs.plugins.protobufPlugin) apply false
-}
-
 buildscript {
     repositories {
         google()
@@ -15,6 +8,9 @@ buildscript {
     dependencies {
         classpath(libs.gradle)
         classpath(kotlin("gradle-plugin", libs.versions.kotlin.get()))
+        classpath("com.google.dagger:hilt-android-gradle-plugin:${libs.versions.hilt.get()}")
+        classpath("com.google.devtools.ksp:symbol-processing-gradle-plugin:${libs.versions.ksp.get()}")
+        classpath("com.google.protobuf:protobuf-gradle-plugin:${libs.versions.protobufPlugin.get()}")
     }
 }
 

@@ -21,7 +21,7 @@
 [33m4ddcea7e[m fix(parser): resolve empty explore/search album and playlist pages with robust selectors
 [33me7e095dc[m chore(deps): normalize dependency aliases
 [33m3b6f8575[m Fixed issue gemni
-[33m8ef27119[m Merge branch 'main' of https://github.com/vivizzz007/vivi-music
+[33m8ef27119[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
 [33m1a57cc7e[m Fixed issue with gemni translation
 [33mbe653a41[m fix(menu): guard listen together resync manager
 [33mf7f3e8e1[m fix(innertube): clean compiler warnings
@@ -34,15 +34,15 @@
 [33m4397705a[m removed nightly
 [33mcad38dd9[m "feat(innertube): upgrade contextual player recommendations parser - Added support for parsing standard shelves (musicShelfRenderer) and flat item sections (itemSectionRenderer) inside related() player recommendations. - Defined ItemSectionRenderer data structures in SectionListRenderer.kt to map newly supported InnerTube layout formats. - Ensures all contextually recommended tracks, albums, artists, and playlists load fully in the player's Related feed."
 [33m8cfe5949[m fixed search issue
-[33m3d4b04d6[m feat(lyrics): add draggable provider priority ordering in Content Settings - Add LyricsProviderRegistry to map and serialize/deserialize provider order - Add DraggableLyricsProviderList reorderable UI component - Add LyricsProviderOrderKey preference to persist user-defined order - Refactor LyricsHelper to respect saved provider order when fetching lyrics - Replace AlertDialog with premium BasicAlertDialog using smooth squircles - Add lyrics_provider_priority strings to vivi_strings.xml Migrates old PreferredLyricsProvider enum preference: on first launch after update, the previously selected provider is promoted to first in the new order.
+[33m3d4b04d6[m feat(lyrics): add draggable provider priority ordering in Content Settings - Add LyricsProviderRegistry to map and serialize/deserialize provider order - Add DraggableLyricsProviderList reorderable UI component - Add LyricsProviderOrderKey preference to persist user-defined order - Refactor LyricsHelper to respect saved provider order when fetching lyrics - Replace AlertDialog with premium BasicAlertDialog using smooth squircles - Add lyrics_provider_priority strings to adt_strings.xml Migrates old PreferredLyricsProvider enum preference: on first launch after update, the previously selected provider is promoted to first in the new order.
 [33md0e4d1bb[m testing 2
 [33m3c117747[m testing
 [33mabe98d57[m added link support
 [33ma6759c42[m updated settingdialoge
 [33m825c3e38[m added url support
 [33m92e305fa[m added an new setting ui to home
-[33mf98cc8bf[m Fixed issue on text visibility https://github.com/vivizzz007/vivi-music/issues/682#issue-4496606627
-[33mde64cbaa[m fixed starting page https://github.com/vivizzz007/vivi-music/issues/684#issue-4502633342
+[33mf98cc8bf[m Fixed issue on text visibility https://github.com/vivizzz007/adt-music/issues/682#issue-4496606627
+[33mde64cbaa[m fixed starting page https://github.com/vivizzz007/adt-music/issues/684#issue-4502633342
 [33m8cb4c880[m Updated view model
 [33m3e1eec1e[m added search option in add to playlist
 [33m251a6631[m reverted
@@ -82,7 +82,7 @@
 [33m85301681[m updated readme
 [33md1abcf95[m updated readme
 [33mc96a3f10[m added privacy and data collection info
-[33md851d704[m renamed strings to new vivi_strings from old
+[33md851d704[m renamed strings to new adt_strings from old
 [33mad9c7022[m feat: implement expressive 'Support the Developer' bottom sheet
 [33m69cd3a6d[m removed canvas storage
 [33m80b6d647[m feat: implement persistent disk caching for Apple Music Canvas - Added CanvasVideoCache singleton to manage disk-based video caching. - Integrated CacheDataSource into CanvasArtworkPlayer for thumbnail animations. - Refactored BackgroundVideoView in Player.kt to support background video caching. - Added Canvas Cache management to Storage Settings with size slider and real-time usage monitoring. - Included manual cache clearing functionality and updated string resources.
@@ -129,7 +129,7 @@
 [33ma1abe286[m new CircularWavyProgressIndicator
 [33ma2de782c[m Parallel Resilience: Each section (Songs, Artists, Albums, Videos) now has its own error handling. If one fails, the others will still load.
 [33mb013bf4c[m shifted from billboard to applemusic suggetions
-[33mc13a9d8e[m Merge branch 'feature/android-auto-media-player' of https://github.com/Anto426/vivi-music into feature/android-auto-media-player
+[33mc13a9d8e[m Merge branch 'feature/android-auto-media-player' of https://github.com/Anto426/adt-music into feature/android-auto-media-player
 [33me1fde257[m fix(android-auto): restore artwork loading
 [33m27be08e0[m Merge branch 'vivizzz007:main' into feature/android-auto-media-player
 [33m566bc287[m missing icons added
@@ -148,7 +148,7 @@
 [33m983602ed[m Merge pull request #590 from Mickael81/Mickael81-patch
 [33mf5c78e52[m Merge pull request #10 from Mickael81/Mickael81-patch-10
 [33mb27092d4[m Delete app/src/main/res/values-fr/app_name.xml
-[33m9e4bd23c[m git commit -m "fix(updater): add clickable hyperlink support and enforce vivi.apk requirement"
+[33m9e4bd23c[m git commit -m "fix(updater): add clickable hyperlink support and enforce adt.apk requirement"
 [33m3bff27b4[m[33m ([m[1;33mtag: [m[1;33mv6.0.0[m[33m)[m Updated V6.0.0
 [33md00feefd[m fix(canvas): prevent wrong album animation from showing for Apple Music canvas
 [33m8e417a20[m added radio button in old playermenu
@@ -182,8 +182,8 @@
 [33me732f9b0[m Now you can when an apk isnt removed from updater download location it shows which apk is there
 [33mf929ec95[m Updated string and color
 [33m47c37cd7[m added Ko-Fi link
-[33m51980759[m Fix missing newline at end of vivi_strings.xml
-[33m60e678fc[m Fix duplicate closing tag in vivi_strings.xml
+[33m51980759[m Fix missing newline at end of adt_strings.xml
+[33m60e678fc[m Fix duplicate closing tag in adt_strings.xml
 [33m70c77ea9[m Merge pull request #4 from Mickael81/Mickael81-patch-4
 [33m3cae961b[m Add French strings for suggestions and comments
 [33m5b8b6723[m Merge branch 'vivizzz007:main' into main
@@ -193,12 +193,12 @@
 [33ma4bdbfd8[m Merge pull request #588 from vivizzz007/feature/switch-to-android-comments
 [33m9867d790[m[33m ([m[1;31morigin/feature/switch-to-android-comments[m[33m)[m My code ready for main
 [33mae607cf8[m removed text
-[33mb097d6fa[m Merge branch 'main' of https://github.com/vivizzz007/vivi-music
+[33mb097d6fa[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
 [33m464100a9[m added a text
 [33m7c63ac1b[m New design for bottomsheet bluetooth
 [33ma7338d84[m Updated changelogscreen
 [33m12182028[m The pause/play detection is now Improved
-[33m23297eef[m Merge branch 'main' of https://github.com/vivizzz007/vivi-music
+[33m23297eef[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
 [33me43ca375[m The timing engine now reads playerConnection.player.currentPosition directly from the media player every single frame. This gives zero-delay, real-time position data at 60/120 FPS.
 [33mdb204333[m fix(ui): resolve SQLite crash when adding songs to playlist in OnlinePlaylistScreen
 [33mb3e39393[m fixed image issue in localplaylist
@@ -220,7 +220,7 @@
 [33m634ea151[m Merge branch 'vivizzz007:main' into main
 [33mf8eed0a8[m simpmusic lyrics fetch fix
 [33m53707c4e[m Updated
-[33m0a525d7d[m Merge branch 'main' of https://github.com/vivizzz007/vivi-music
+[33m0a525d7d[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
 [33m8058d47d[m Added: https://lyricsplus.prjktla.my.id (Primary server). Updated: https://youlyplus.binimum.org → https://lyricsplus.binimum.org. Removed: http://ly.mxtiy.xyz (Insecure and deprecated). Reordered: Servers now follow the priority order from the official extension.
 [33m8f5308fa[m Added applemusicArtist background
 [33md3089816[m Revert "moved the AppleMusicCanvasProvider from the separate applecanvas module directly into the canvas module"
@@ -229,7 +229,7 @@
 [33m0a415565[m removed
 [33mba9cdf0e[m Both of these styles cleanly render their own translated text during their independent internal layout creation, so this perfectly resolves your duplicate translation issue.
 [33m0913adf7[m nstant Content Sync: I reduced the manifest cache from 1 hour to just 1 minute. This means if you add a new song to canvas.json and push it to Vercel, the app will now pick it up almost immediately instead of making you wait an hour. Fix HLS (.m3u8) Playback: I made the MIME type detection in CanvasArtworkPlayer.kt much more robust. It now explicitly recognizes .m3u8 streams from your Vercel repository, ensuring that tracks like the Spider-Verse collection (e.g., 7.m3u8) play cinematic-quality video without errors.
-[33m2a3835b2[m added vivimusic canvas custom canvas support
+[33m2a3835b2[m added adtmusic canvas custom canvas support
 [33m5bd4cdba[m increased the curve GLOBALLY (for all thumbnails) from 3 to 6
 [33m22d5a8f6[m added applemusic description as fallback when wikipedia didn't get
 [33m864c479d[m improved fetching and logic for applemusic
@@ -243,7 +243,7 @@
 [33mb17fe94b[m Merge branch 'vivizzz007:main' into main
 [33m271023ae[m Translate updater strings to French
 [33mb454ead7[m Add album canvas strings in French localization
-[33m23bf035b[m Fix formatting in vivi_strings.xml
+[33m23bf035b[m Fix formatting in adt_strings.xml
 [33mbf6dd993[m Fix formatting of persistent_queue_desc string
 [33m85591363[m Fix typo in failed_to_parse_proxy string
 [33m8c45f742[m Added album canvas
@@ -255,24 +255,24 @@
 [33mff3ec9df[m New updater and animations
 [33m7c5025a1[m Merge branch 'vivizzz007:main' into main
 [33mf63d024f[m Merge pull request #1 from Mickael81/Mickael81-patch-1
-[33me03257ea[m Update French translations in vivi_strings.xml
-[33m5c066cdd[m Update French translations in vivi_strings.xml
+[33me03257ea[m Update French translations in adt_strings.xml
+[33m5c066cdd[m Update French translations in adt_strings.xml
 [33ma7432d1a[m Reverted commit regarding to translation
 [33m3c2917fa[m Fixed lyrics translation issue
 [33mc1766cf2[m Update French strings for equalizer and playback
 [33m9df3aecb[m Translate Last.fm integration strings to French
 [33m21eba6bc[m Translate updater and audio offload strings to French
-[33m99f72be7[m Update French translations in vivi_strings.xml
+[33m99f72be7[m Update French translations in adt_strings.xml
 [33m451fcfbc[m Translate player settings strings to French
 [33m48531195[m added an option to copy logs
-[33mf721e287[m Translate strings in vivi_strings.xml to French
+[33mf721e287[m Translate strings in adt_strings.xml to French
 [33m5877dae6[m Add network IP version strings in French
 [33m551eacd3[m Update default library chip string to French
 [33mf8fe0a41[m  Moved the "Network IP Version" setting from the Player settings to the Content settings
 [33mdac6bf8b[m implementing the IPv4/IPv6 streaming option
 [33me6221dcc[m Added missing ow, when you manually scroll through the lyrics, the blur effect will automatically drop so that all lines are clearly readable. Once you re-enable Auto Scroll, the blur will return to lines away from the current playback position.
-[33me7c1d0df[m Translate strings to French in vivi_strings.xml
-[33m538ece3d[m Translate strings in vivi_strings.xml to French
+[33me7c1d0df[m Translate strings to French in adt_strings.xml
+[33m538ece3d[m Translate strings in adt_strings.xml to French
 [33m2f8b3e13[m Translate player settings strings to French
 [33mf511f232[m Add strings for clearing downloaded updates
 [33m84620e26[m Add plural strings for APK found messages in French
@@ -295,10 +295,10 @@
 [33m0baeddc6[m reverted the libs version
 [33m8d3814a7[m new ui for the last.fm setting page
 [33ma0ee7ea0[m implemented a fix to ensure that artist thumbnails are correctly fetched and displayed in the AlbumScreen  for single-artist albums, even if the artist was previously unknown to the database.
-[33m60cd3b98[m Now only default as one server vivimusic server for the listen together will bring back Meowery after sometime
-[33meba1f9fd[m Now vivimusic shows update dynamically even if you at b tag dosent matter you will be given rollback to stable build
+[33m60cd3b98[m Now only default as one server adtmusic server for the listen together will bring back Meowery after sometime
+[33meba1f9fd[m Now adtmusic shows update dynamically even if you at b tag dosent matter you will be given rollback to stable build
 [33m8a389f81[m[33m ([m[1;33mtag: [m[1;33mb5.0.7[m[33m, [m[1;33mtag: [m[1;33mb5.0.6[m[33m)[m chore: bump newpipeextractor version to v0.26.0
-[33m397e5a69[m currently main server as vivimusic
+[33m397e5a69[m currently main server as adtmusic
 [33md0599f8e[m New blurbackground for onlineplaylistscreen
 [33m4aaa8989[m new upgraded albumgradient
 [33me8b3bb82[m Update French translations in strings.xml
@@ -323,14 +323,14 @@
 [33m50be55b0[m fixed the lyrics spacing for ALL animation styles (Standard, Fade, Glow, Slide, Karaoke, Apple, etc.).
 [33m55642839[m added line space upto 4.0x
 [33m4f6aaac6[m Reverted
-[33m4db4d7ab[m Added VIVIMUSIC_1 blur animation to standardLyrics as a toogle default its off
+[33m4db4d7ab[m Added ADTMUSIC_1 blur animation to standardLyrics as a toogle default its off
 [33m74fb0494[m Updated thumbnail.kt to show album name
 [33m23b7153f[m Fixed streaming issue in metro.mowery server for listen together
 [33mc542783c[m Fixed issue where the listen together not working when google account sign in occured
 [33m25a2957a[m Found and fixed the root cause. Here's what happened:
 [33mb188caf8[m[33m ([m[1;33mtag: [m[1;33mv5.0.6[m[33m)[m Bumbed to new version v5.0.6
 [33mc4d47e67[m fix: resolve streaming delay by switching to ANDROID_VR client and deferring PoToken generation
-[33m36a76881[m[33m ([m[1;33mtag: [m[1;33mb5.0.5[m[33m)[m Fixed issue https://github.com/vivizzz007/vivi-music/issues/469#issue-4027155987
+[33m36a76881[m[33m ([m[1;33mtag: [m[1;33mb5.0.5[m[33m)[m Fixed issue https://github.com/vivizzz007/adt-music/issues/469#issue-4027155987
 [33m95fd8943[m[33m ([m[1;33mtag: [m[1;33mv5.0.5[m[33m)[m Updated
 [33m4770a91b[m added enhancement  listen togather
 [33m58816e28[m Beta to stable
@@ -343,7 +343,7 @@
 [33m78cdce85[m Version Display: The Update Settings screen now displays the app version, architecture (ABI), and build variant (GMS/FOSS),
 [33m935248d4[m fdroid buid no more include install permission in building
 [33m7b1fa152[m Added tidal thumnail canvas thanks to monochrome codes
-[33m60b3cc74[m added  YouLyPlus as default provider for the lyrics and added vivimusic_1 as default animation
+[33m60b3cc74[m added  YouLyPlus as default provider for the lyrics and added adtmusic_1 as default animation
 [33m798681a0[m Updated Web icon
 [33m207ab953[m Updated icon
 [33mb340a31b[m added some space below in aboutscreen
