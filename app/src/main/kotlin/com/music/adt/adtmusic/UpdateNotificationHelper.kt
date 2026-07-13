@@ -38,9 +38,9 @@ object UpdateNotificationHelper {
 
         // Direct download URL format from adtmusicupdater - use the full tag (vX.X.X or bX.X.X) or nightly link
         val apkUrl = if (versionName.contains("nightly", ignoreCase = true)) {
-            "https://nightly.link/vivizzz007/adt-music/workflows/nightly.yml/main/adt-music-gms-nightly.zip"
+            "https://nightly.link/alideniztartma/adt-music/workflows/nightly.yml/main/adt-music-gms-nightly.zip"
         } else {
-            "https://github.com/vivizzz007/adt-music/releases/download/$versionName/adt.apk"
+            "https://github.com/alideniztartma/adt-music/releases/download/$versionName/adt.apk"
         }
         val intent = Intent(Intent.ACTION_VIEW, apkUrl.toUri())
 

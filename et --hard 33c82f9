@@ -16,12 +16,12 @@
 [33mb2be0003[m "fix(lyrics): restore Paxsenix lyrics search by querying Apple Music directly - Bypasses the broken and rate-limited 'lyrics.paxsenix.org/apple-music/search' proxy endpoint. - Integrates AppleTokenManager to scrape and cache a valid Apple developer token from beta.music.apple.com. - Queries Apple Music search API directly and performs fuzzy track matching. - Ports the robust lyrics quality ranking (word-level, line-level, plain) from Metrolist."
 [33mf39a2fa8[m retuen back nightly
 [33mee2e3586[m fix(queue): use suspending database transaction when adding song to playlist
-[33mcdbe8a81[m Merge pull request #719 from vivizzz007/fix/search-tabs
+[33mcdbe8a81[m Merge pull request #719 from alideniztartma/fix/search-tabs
 [33m1bd37838[m[33m ([m[1;31morigin/fix/search-tabs[m[33m)[m fixed search section not loading
 [33m4ddcea7e[m fix(parser): resolve empty explore/search album and playlist pages with robust selectors
 [33me7e095dc[m chore(deps): normalize dependency aliases
 [33m3b6f8575[m Fixed issue gemni
-[33m8ef27119[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
+[33m8ef27119[m Merge branch 'main' of https://github.com/alideniztartma/adt-music
 [33m1a57cc7e[m Fixed issue with gemni translation
 [33mbe653a41[m fix(menu): guard listen together resync manager
 [33mf7f3e8e1[m fix(innertube): clean compiler warnings
@@ -41,8 +41,8 @@
 [33ma6759c42[m updated settingdialoge
 [33m825c3e38[m added url support
 [33m92e305fa[m added an new setting ui to home
-[33mf98cc8bf[m Fixed issue on text visibility https://github.com/vivizzz007/adt-music/issues/682#issue-4496606627
-[33mde64cbaa[m fixed starting page https://github.com/vivizzz007/adt-music/issues/684#issue-4502633342
+[33mf98cc8bf[m Fixed issue on text visibility https://github.com/alideniztartma/adt-music/issues/682#issue-4496606627
+[33mde64cbaa[m fixed starting page https://github.com/alideniztartma/adt-music/issues/684#issue-4502633342
 [33m8cb4c880[m Updated view model
 [33m3e1eec1e[m added search option in add to playlist
 [33m251a6631[m reverted
@@ -92,11 +92,11 @@
 [33mc91c33ab[m fixed an issue where the equlizer when deleting isnt get deleted
 [33ma9ae49bf[m added volume slider to oldplayermenu
 [33mfdb84b31[m added apple music canvas for background
-[33m9fe6056c[m Merge branch 'vivizzz007:main' into feature/android-auto-media-player
+[33m9fe6056c[m Merge branch 'alideniztartma:main' into feature/android-auto-media-player
 [33ma29742bb[m perf(lyrics): parallelize YouLyPlus & Paxsenix fetching
 [33m7b7ccb5b[m added smooth animation to volume slider m3e
 [33mb71f82c0[m added an option to disable the badge of the audio quality showing in player.kt {old player}
-[33m5f5136fa[m Merge pull request #663 from vivizzz007/feature/audio-output-switching
+[33m5f5136fa[m Merge pull request #663 from alideniztartma/feature/audio-output-switching
 [33mdbc7ccc3[m[33m ([m[1;31morigin/feature/audio-output-switching[m[33m)[m feat(ui): modernize AudioDeviceBottomSheet with Android 15 expressive design
 [33m48675682[m added sleeptimer to audio quality section in old player progress
 [33m7068e72c[m added new audio quality showing in old player
@@ -131,7 +131,7 @@
 [33mb013bf4c[m shifted from billboard to applemusic suggetions
 [33mc13a9d8e[m Merge branch 'feature/android-auto-media-player' of https://github.com/Anto426/adt-music into feature/android-auto-media-player
 [33me1fde257[m fix(android-auto): restore artwork loading
-[33m27be08e0[m Merge branch 'vivizzz007:main' into feature/android-auto-media-player
+[33m27be08e0[m Merge branch 'alideniztartma:main' into feature/android-auto-media-player
 [33m566bc287[m missing icons added
 [33m14baffa2[m git commit -m "feat: implement ultra-high quality thumbnails and optimized canvas delivery
 [33m4a932f74[m Fixed local search not able to scroll in search
@@ -186,19 +186,19 @@
 [33m60e678fc[m Fix duplicate closing tag in adt_strings.xml
 [33m70c77ea9[m Merge pull request #4 from Mickael81/Mickael81-patch-4
 [33m3cae961b[m Add French strings for suggestions and comments
-[33m5b8b6723[m Merge branch 'vivizzz007:main' into main
+[33m5b8b6723[m Merge branch 'alideniztartma:main' into main
 [33m920a13d4[m added wavyslider to audiodevicesheet
 [33m536312dc[m updated agents.md
 [33me15aa9f9[m reverted
-[33ma4bdbfd8[m Merge pull request #588 from vivizzz007/feature/switch-to-android-comments
+[33ma4bdbfd8[m Merge pull request #588 from alideniztartma/feature/switch-to-android-comments
 [33m9867d790[m[33m ([m[1;31morigin/feature/switch-to-android-comments[m[33m)[m My code ready for main
 [33mae607cf8[m removed text
-[33mb097d6fa[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
+[33mb097d6fa[m Merge branch 'main' of https://github.com/alideniztartma/adt-music
 [33m464100a9[m added a text
 [33m7c63ac1b[m New design for bottomsheet bluetooth
 [33ma7338d84[m Updated changelogscreen
 [33m12182028[m The pause/play detection is now Improved
-[33m23297eef[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
+[33m23297eef[m Merge branch 'main' of https://github.com/alideniztartma/adt-music
 [33me43ca375[m The timing engine now reads playerConnection.player.currentPosition directly from the media player every single frame. This gives zero-delay, real-time position data at 60/120 FPS.
 [33mdb204333[m fix(ui): resolve SQLite crash when adding songs to playlist in OnlinePlaylistScreen
 [33mb3e39393[m fixed image issue in localplaylist
@@ -206,7 +206,7 @@
 [33m7850a599[m New search and history showing
 [33m2feeb67f[m Merge pull request #3 from Mickael81/Mickael81-patch-3
 [33m74a1b31c[m Add Metro lyrics string to French resources
-[33m29db45fb[m Merge branch 'vivizzz007:main' into main
+[33m29db45fb[m Merge branch 'alideniztartma:main' into main
 [33m62f2ea09[m Updated icon
 [33mddf4de96[m added space to history screen
 [33mc8cbb16a[m Updated icon
@@ -217,10 +217,10 @@
 [33mdaeafc0e[m Fixed issue in artist canvas black screen it will hide video when background video enabled
 [33m3da2345c[m Merge pull request #2 from Mickael81/Mickael81-patch-2
 [33m8da10522[m Add background video strings for artist display
-[33m634ea151[m Merge branch 'vivizzz007:main' into main
+[33m634ea151[m Merge branch 'alideniztartma:main' into main
 [33mf8eed0a8[m simpmusic lyrics fetch fix
 [33m53707c4e[m Updated
-[33m0a525d7d[m Merge branch 'main' of https://github.com/vivizzz007/adt-music
+[33m0a525d7d[m Merge branch 'main' of https://github.com/alideniztartma/adt-music
 [33m8058d47d[m Added: https://lyricsplus.prjktla.my.id (Primary server). Updated: https://youlyplus.binimum.org → https://lyricsplus.binimum.org. Removed: http://ly.mxtiy.xyz (Insecure and deprecated). Reordered: Servers now follow the priority order from the official extension.
 [33m8f5308fa[m Added applemusicArtist background
 [33md3089816[m Revert "moved the AppleMusicCanvasProvider from the separate applecanvas module directly into the canvas module"
@@ -240,7 +240,7 @@
 [33mbb4c1613[m Added missing Daily Discover title in Home screen
 [33m691b2db9[m Partial implimentation of apple music player
 [33m1aac70c0[m added apple desing initial
-[33mb17fe94b[m Merge branch 'vivizzz007:main' into main
+[33mb17fe94b[m Merge branch 'alideniztartma:main' into main
 [33m271023ae[m Translate updater strings to French
 [33mb454ead7[m Add album canvas strings in French localization
 [33m23bf035b[m Fix formatting in adt_strings.xml
@@ -249,11 +249,11 @@
 [33m8c45f742[m Added album canvas
 [33m3461950f[m Add French localization for updater strings
 [33mc65ed98e[m Create updater_strings.xml
-[33me2f02a70[m Merge branch 'vivizzz007:main' into main
+[33me2f02a70[m Merge branch 'alideniztartma:main' into main
 [33m91f86340[m Fixed some patch
 [33m333cfb0a[m removed some text
 [33mff3ec9df[m New updater and animations
-[33m7c5025a1[m Merge branch 'vivizzz007:main' into main
+[33m7c5025a1[m Merge branch 'alideniztartma:main' into main
 [33mf63d024f[m Merge pull request #1 from Mickael81/Mickael81-patch-1
 [33me03257ea[m Update French translations in adt_strings.xml
 [33m5c066cdd[m Update French translations in adt_strings.xml
@@ -330,7 +330,7 @@
 [33m25a2957a[m Found and fixed the root cause. Here's what happened:
 [33mb188caf8[m[33m ([m[1;33mtag: [m[1;33mv5.0.6[m[33m)[m Bumbed to new version v5.0.6
 [33mc4d47e67[m fix: resolve streaming delay by switching to ANDROID_VR client and deferring PoToken generation
-[33m36a76881[m[33m ([m[1;33mtag: [m[1;33mb5.0.5[m[33m)[m Fixed issue https://github.com/vivizzz007/adt-music/issues/469#issue-4027155987
+[33m36a76881[m[33m ([m[1;33mtag: [m[1;33mb5.0.5[m[33m)[m Fixed issue https://github.com/alideniztartma/adt-music/issues/469#issue-4027155987
 [33m95fd8943[m[33m ([m[1;33mtag: [m[1;33mv5.0.5[m[33m)[m Updated
 [33m4770a91b[m added enhancement  listen togather
 [33m58816e28[m Beta to stable
