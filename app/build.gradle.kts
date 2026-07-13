@@ -9,7 +9,7 @@ if (localPropertiesFile.exists()) {
 }
 plugins {
     id("com.android.application")
-    alias(libs.plugins.hilt)
+    id("dagger.hilt.android.plugin")
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
@@ -309,4 +309,3 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     implementation(libs.androidx.core.splashscreen)
 }
-
