@@ -1,5 +1,6 @@
 plugins {
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.20" apply false
+    alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
 }
 
 buildscript {
