@@ -1,7 +1,12 @@
+plugins {
+    alias(libs.plugins.kotlin.compose) apply false
+}
+
 buildscript {
     repositories {
         google()
         mavenCentral()
+        gradlePluginPortal()
         maven { setUrl("https://jitpack.io") }
         maven { setUrl("https://maven.aliyun.com/repository/public") }
     }
