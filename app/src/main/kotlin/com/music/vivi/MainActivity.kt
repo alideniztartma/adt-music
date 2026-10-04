@@ -566,11 +566,11 @@ class MainActivity : ComponentActivity() {
         ) {
             if (lastSeenStarPromptVersion != currentVersion && !hasStarredRepo && !isStarred) {
                 ActionPromptDialog(
-                    title = "Support ViviMusic \u2B50",
+                    title = "Support ADTMusic \u2B50",
                     onDismiss = { setLastSeenStarPromptVersion(currentVersion) },
                     onConfirm = {
                         setLastSeenStarPromptVersion(currentVersion)
-                        uriHandler.openUri("https://github.com/vivizzz007/vivi-music")
+                        uriHandler.openUri("https://github.com/alideniztartma/adt-music")
                     },
                     onCancel = { setLastSeenStarPromptVersion(currentVersion) },
                     content = {
@@ -581,7 +581,7 @@ class MainActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text(
-                                text = "If you enjoy using ViviMusic, would you consider starring our repository on GitHub?",
+                                text = "If you enjoy using ADTMusic, would you consider starring our repository on GitHub?",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
