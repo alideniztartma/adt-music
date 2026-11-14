@@ -195,6 +195,7 @@ fun PlayerScreen() {
                     "${(state.index + 1).coerceAtLeast(1).toString().padStart(2, '0')} / ${state.queue.size.toString().padStart(2, '0')}",
                     AdtTheme.type.caption, color = c.muted,
                 )
+                IconBtn(AdtIcons.Comment, "Yorumlar", { ui.show(SheetSpec.Comments(song)) })
                 IconBtn(AdtIcons.More, "Seçenekler", { ui.show(SheetSpec.SongOptions(song, queueIndex = null)) })
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(c.ink))

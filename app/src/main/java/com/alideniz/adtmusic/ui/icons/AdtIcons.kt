@@ -136,6 +136,7 @@ object AdtIcons {
         ),
     )
     val Badge = stroke("badge", "M12 3a6 6 0 1 1 0 12a6 6 0 1 1 0-12z", "M8.5 14L7 21l5-3 5 3-1.5-7")
+    val Comment = stroke("comment", "M4 4.5h16v11.5H9.5L4 20.5z", "M8 9h8", "M8 12.5h5")
     val Info = stroke("info", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M12 11v6", "M12 7.5v.5")
     val Quote = mixed("quote", strokes = emptyList(), fills = listOf("M4 10a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2h2v6H4z", "M13 10a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2h2v6h-4z"))
     val Import = stroke("import", "M12 3v11", "M7 9l5 5 5-5", "M4 15v5h16v-5")

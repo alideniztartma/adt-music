@@ -21,6 +21,7 @@ sealed interface SheetSpec {
     data class Capsule(val row: com.alideniz.adtmusic.data.db.MomentRow) : SheetSpec
     data object Update : SheetSpec
     data class SongInfo(val song: Song) : SheetSpec
+    data class Comments(val song: Song) : SheetSpec
     data class LyricCard(val song: Song, val line: String) : SheetSpec
     data class Input(
         val title: String,

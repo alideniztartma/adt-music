@@ -189,6 +189,14 @@ fun SongInfoContent(spec: SheetSpec.SongInfo, ui: AppUi) {
             )
         }
 
+        Btn(
+            "Yorumları gör",
+            { ui.show(SheetSpec.Comments(song)) },
+            Modifier.padding(horizontal = 24.dp, vertical = 12.dp).fillMaxWidth(),
+            icon = AdtIcons.Comment,
+            style = BtnStyle.OUTLINE,
+        )
+
         if (o != null && o.description.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
             Txt("AÇIKLAMA", AdtTheme.type.label, color = c.accent, modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp))

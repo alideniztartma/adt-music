@@ -9,6 +9,8 @@ import org.schabi.newpipe.extractor.InfoItem
 import org.schabi.newpipe.extractor.Page
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.channel.ChannelInfoItem
+import org.schabi.newpipe.extractor.comments.CommentsInfo
+import org.schabi.newpipe.extractor.comments.CommentsInfoItem
 import org.schabi.newpipe.extractor.kiosk.KioskInfo
 import org.schabi.newpipe.extractor.linkhandler.SearchQueryHandler
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo
@@ -35,6 +37,29 @@ class SearchCursor internal constructor(
 ) {
     val hasMore: Boolean get() = page != null
 }
+
+@androidx.compose.runtime.Immutable
+data class Comment(
+    val id: String,
+    val author: String,
+    val avatar: String?,
+    val text: String,
+    val likes: Int,
+    val date: String?,
+    val replyCount: Int,
+    val pinned: Boolean,
+    val hearted: Boolean,
+    val byUploader: Boolean,
+    val verified: Boolean,
+    val repliesPage: Page?,
+)
+
+data class CommentPage(
+    val items: List<Comment>,
+    val next: Page?,
+    val disabled: Boolean = false,
+    val total: Int = -1,
+)
 
 data class SearchPage(val items: List<SearchItem>, val cursor: SearchCursor?, val correction: String?)
 
@@ -178,6 +203,47 @@ class YouTubeRepository {
             thumbnail = thumbnail,
             songs = own.ifEmpty { s },
             albums = ownAlbums.ifEmpty { a }.take(12),
+        )
+    }
+
+    // ------------------------------------------------------------ yorumlar
+
+    private fun commentsUrl(id: String) = "https://www.youtube.com/watch?v=$id"
+
+    suspend fun comments(id: String): CommentPage = withContext(Dispatchers.IO) {
+        val info = CommentsInfo.getInfo(yt, commentsUrl(id))
+        CommentPage(
+            items = info.relatedItems.map { it.toComment() },
+            next = info.nextPage,
+            disabled = info.isCommentsDisabled,
+            total = info.commentsCount,
+        )
+    }
+
+    /** Sonraki yorum sayfası ya da bir yorumun yanıtları (yanıt sayfası verilirse). */
+    suspend fun moreComments(id: String, page: Page): CommentPage = withContext(Dispatchers.IO) {
+        val more = CommentsInfo.getMoreItems(yt, commentsUrl(id), page)
+        CommentPage(items = more.items.map { it.toComment() }, next = more.nextPage)
+    }
+
+    private fun CommentsInfoItem.toComment(): Comment {
+        val raw = commentText?.content.orEmpty()
+        val text = if (raw.contains('<') || raw.contains('&')) {
+            androidx.core.text.HtmlCompat.fromHtml(raw.replace("\n", "<br>"), androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
+        } else raw
+        return Comment(
+            id = commentId ?: (uploaderName + raw.hashCode()),
+            author = uploaderName?.removePrefix("@").orEmpty().ifBlank { "Kullanıcı" },
+            avatar = uploaderAvatars?.maxByOrNull { it.height }?.url,
+            text = text.trim(),
+            likes = likeCount,
+            date = textualUploadDate,
+            replyCount = replyCount,
+            pinned = isPinned,
+            hearted = isHeartedByUploader,
+            byUploader = isChannelOwner,
+            verified = isUploaderVerified,
+            repliesPage = replies,
         )
     }
 
