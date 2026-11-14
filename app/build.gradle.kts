@@ -1,209 +1,71 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties
-import java.net.URL
-
-val localProperties = Properties()
-val localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localProperties.load(localPropertiesFile.inputStream())
-}
 plugins {
     id("com.android.application")
-    alias(libs.plugins.hilt)
-    alias(libs.plugins.kotlin.ksp)
-    alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.protobufPlugin)
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
-    namespace = "com.music.vivi"
-    compileSdk = 37
-    ndkVersion = "27.0.12077973"
+    namespace = "com.alideniz.adtmusic"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.vivi.vivimusic"
+        applicationId = "com.alideniz.adtmusic"
         minSdk = 26
-        targetSdk = 37
-        versionCode = 77
-        val betaVersionName = project.findProperty("betaVersionName") as String?
-        versionName = betaVersionName ?: "6.0.8"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables.useSupportLibrary = true
-
-        // LastFM API keys from GitHub Secrets
-//        val lastFmKey = localProperties.getProperty("LASTFM_API_KEY") ?: System.getenv("LASTFM_API_KEY") ?: ""
-//        val lastFmSecret = localProperties.getProperty("LASTFM_SECRET") ?: System.getenv("LASTFM_SECRET") ?: ""
-        
-        val lastFmKey = "694cbaa17c78202a133eac4656dff651"
-        val lastFmSecret = "a0fdaf6060f19128c4a84f297c71e627"
-
-        buildConfigField("String", "LASTFM_API_KEY", "\"$lastFmKey\"")
-        buildConfigField("String", "LASTFM_SECRET", "\"$lastFmSecret\"")
-
-
-
-//add nightly build label support
-        val isNightly = project.hasProperty("nightly") && project.property("nightly") == "true"
-        buildConfigField("Boolean", "IS_NIGHTLY", isNightly.toString())
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
     }
 
-    flavorDimensions += listOf("abi", "variant")
-    productFlavors {
-        // FOSS variant (default) - F-Droid compatible, no Google Play Services
-        create("foss") {
-            dimension = "variant"
-            isDefault = true
-            buildConfigField("Boolean", "CAST_AVAILABLE", "false")
-        }
-
-        // GMS variant - with Google Cast support (requires Google Play Services)
-        create("gms") {
-            dimension = "variant"
-            buildConfigField("Boolean", "CAST_AVAILABLE", "true")
-        }
-        
-        create("universal") {
-            dimension = "abi"
-            buildConfigField("String", "ARCHITECTURE", "\"universal\"")
-        }
-        create("arm64") {
-            dimension = "abi"
-            buildConfigField("String", "ARCHITECTURE", "\"arm64\"")
-        }
-        create("armeabi") {
-            dimension = "abi"
-            buildConfigField("String", "ARCHITECTURE", "\"armeabi\"")
-        }
-        create("x86") {
-            dimension = "abi"
-            buildConfigField("String", "ARCHITECTURE", "\"x86\"")
-        }
-        create("x86_64") {
-            dimension = "abi"
-            buildConfigField("String", "ARCHITECTURE", "\"x86_64\"")
+    signingConfigs {
+        create("release") {
+            // Kendi anahtarını kullanmak istersen GitHub Secrets ile değiştir (README'ye bak).
+            storeFile = file(System.getenv("ADT_KEYSTORE_PATH") ?: "adtmusic.jks")
+            storePassword = System.getenv("ADT_KEYSTORE_PASSWORD") ?: "adtmusic123"
+            keyAlias = System.getenv("ADT_KEY_ALIAS") ?: "adtmusic"
+            keyPassword = System.getenv("ADT_KEY_PASSWORD") ?: "adtmusic123"
         }
     }
 
-   signingConfigs {
-    create("persistentDebug") {
-        storeFile = file("persistent-debug.keystore")
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
-    }
-    create("release") {
-        val keystoreFile = file("keystore/release.keystore")
-        if (keystoreFile.exists()) {
-            storeFile = keystoreFile
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("release")
         }
     }
-    getByName("debug") {
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
-        storePassword = "android"
-        storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
-    }
-}
-
-buildTypes {
-    release {
-        signingConfig = if (file("keystore/release.keystore").exists())
-            signingConfigs.getByName("release")
-        else
-            signingConfigs.getByName("debug")
-        isMinifyEnabled = true
-        isShrinkResources = true
-        isCrunchPngs = false
-        isDebuggable = false
-        proguardFiles(
-            getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro"
-        )
-        buildConfigField("String", "ARCHITECTURE", "\"release\"")
-    }
-    debug {
-        applicationIdSuffix = ".debug"
-        isDebuggable = true
-        signingConfig = signingConfigs.getByName("debug")
-        buildConfigField("String", "ARCHITECTURE", "\"debug\"")
-    }
-}
 
     compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
     }
-
-    kotlin {
-        jvmToolchain(21)
-        compilerOptions {
-            freeCompilerArgs.add("-Xannotation-default-target=param-property")
-            freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
-            jvmTarget.set(JvmTarget.JVM_21)
-        }
+    kotlinOptions {
+        jvmTarget = "17"
     }
-
     buildFeatures {
         compose = true
         buildConfig = true
     }
-
-    dependenciesInfo {
-        includeInApk = false
-        includeInBundle = false
-    }
-
-    lint {
-        lintConfig = file("lint.xml")
-        warningsAsErrors = false
-        abortOnError = false
-        checkDependencies = false
-    }
-
-    androidResources {
-        generateLocaleConfig = true
-    }
-
     packaging {
-        jniLibs {
-            useLegacyPackaging = false
-            keepDebugSymbols += listOf(
-                "**/libandroidx.graphics.path.so",
-                "**/libdatastore_shared_counter.so"
+        resources {
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE*",
+                "META-INF/NOTICE*",
+                "META-INF/*.kotlin_module",
+                "mozilla/public-suffix-list.txt"
             )
         }
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "META-INF/NOTICE.md"
-            excludes += "META-INF/CONTRIBUTORS.md"
-            excludes += "META-INF/LICENSE.md"
-            excludes += "META-INF/INDEX.LIST"
-            excludes += "META-INF/io.netty.versions.properties"
-        }
     }
-}
-
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
-    }
-    generateProtoTasks {
-        all().forEach { task ->
-            task.builtins {
-                create("java") {
-                    option("lite")
-                }
-                create("kotlin") {
-                    option("lite")
-                }
-            }
-        }
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 }
 
@@ -211,109 +73,43 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    compilerOptions {
-        freeCompilerArgs.addAll(
-            "-opt-in=kotlin.RequiresOptIn"
-        )
-        suppressWarnings.set(false)
-    }
-}
-
 dependencies {
-    implementation(libs.guava)
-    implementation(libs.coroutines.guava)
-    implementation(libs.concurrent.futures)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.3")
 
-    implementation(libs.activity)
-    implementation(libs.hilt.navigation)
-    implementation(libs.datastore)
+    // Compose (Material kullanılmıyor: tüm bileşenler ADT tasarım diliyle sıfırdan çizildi)
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
-    implementation(libs.compose.runtime)
-    implementation(libs.compose.foundation)
-    implementation(libs.compose.ui)
-    implementation(libs.compose.ui.util)
-    implementation(libs.compose.ui.tooling)
-    implementation(libs.compose.animation)
-    implementation(libs.compose.reorderable)
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-service:2.8.7")
+    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.palette:palette-ktx:1.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.9.0")
 
-    implementation(libs.viewmodel)
-    implementation(libs.viewmodel.compose)
+    // Medya
+    val media3 = "1.5.1"
+    implementation("androidx.media3:media3-exoplayer:$media3")
+    implementation("androidx.media3:media3-session:$media3")
+    implementation("androidx.media3:media3-datasource-okhttp:$media3")
+    implementation("androidx.media3:media3-database:$media3")
 
-    implementation(libs.material3)
-    implementation(libs.androidx.adaptive)
-    implementation(libs.androidx.adaptive.layout)
-    implementation(libs.androidx.adaptive.navigation)
-    implementation(libs.material3.adaptive.navigation.suite)
-    implementation(libs.palette)
-    implementation(libs.materialKolor)
-    implementation(libs.vico.compose.m3)
+    // Ağ, görsel, YouTube Music
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.1")
 
-    implementation(libs.appcompat)
-
-    implementation(libs.coil)
-    implementation(libs.coil.network.okhttp)
-
-    implementation(libs.ucrop)
-
-    implementation(libs.shimmer)
-
-    implementation(libs.media3)
-    implementation(libs.media3.session)
-    implementation(libs.media3.hls)
-    implementation(libs.media3.ui)
-    implementation(libs.media3.okhttp)
-
-    // Google Cast - only included in GMS flavor (not available in F-Droid/FOSS builds)
-    "gmsImplementation"(libs.media3.cast)
-    "gmsImplementation"(libs.mediarouter)
-    "gmsImplementation"(libs.cast.framework)
-
-    implementation(libs.room.runtime)
-    implementation(libs.kuromoji.ipadic)
-    implementation(libs.tinypinyin)
-    ksp(libs.room.compiler)
-    implementation(libs.room.ktx)
-
-    implementation(libs.apache.lang3)
-
-    implementation(libs.hilt)
-    implementation(libs.jsoup)
-    ksp(libs.hilt.compiler)
-
-    implementation(project(":innertube"))
-    implementation(project(":kizzy"))
-    implementation(project(":lastfm"))
-    implementation(project(":canvas"))
-    implementation(project(":shazamkit"))
-    implementation(project(":artistvideo"))
-    implementation(project(":applecanvas"))
-    implementation(project(":vivimusiccanvas"))
-    implementation(project(":jiosaavn"))
-    implementation(project(":spotify"))
-    implementation(project(":lyricsProvider"))
-
-    implementation(libs.innertubex)
-    implementation(libs.expressivelab)
-
-
-
-
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.json)
-
-    // Protobuf for message serialization (lite version for Android)
-    implementation(libs.protobuf.javalite)
-    implementation(libs.protobuf.kotlin.lite)
-
-    coreLibraryDesugaring(libs.desugaring)
-    implementation(libs.timber)
-    implementation(libs.smoothCorner)
-    implementation(libs.lottie.compose)
-    implementation(libs.haze)
-    implementation(libs.work.runtime.ktx)
-    implementation(libs.androidx.core.splashscreen)
+    // Yerel veritabanı
+    val room = "2.6.1"
+    implementation("androidx.room:room-runtime:$room")
+    implementation("androidx.room:room-ktx:$room")
+    ksp("androidx.room:room-compiler:$room")
 }
-
