@@ -23,6 +23,16 @@ ADT Music, YouTube Music kataloğuna erişen, kendine özgü **Minimal** tasarı
 - Sessiz kısımları atlama
 - Android Auto desteği (beğenilenler, son dinlenenler, indirilenler, listeler, trendler, sesli arama)
 
+**Yeni (1.1)**
+- Şarkılar çok daha hızlı açılır ve iner: istekler parçalara bölünür, sıradaki şarkı önceden yüklenir
+- ADT Wrapped: dönemlik dinleme özeti, kaydırmalı hikâye sayfaları, görsel olarak paylaşma
+- Sanatçı takibi ve ana sayfada "Takip ettiklerinden" rafı
+- 4 söz animasyonu (kelime kelime, dolgu, parlama, odak), hizalama ve boyut seçenekleri
+- Kişiselleştirme: vurgu rengi, AMOLED siyah, köşe stili, yazı boyutu, oynatıcı arka planı, açılış sayfası, ana sayfa rafları
+- 120 Hz desteği, R8 ile optimize sürüm, modern geçiş animasyonları
+- Mini oynatıcıyı aşağı kaydırarak kapatma, ana sayfada arama çubuğu
+- Kütüphane yedekleme / geri yükleme, ses yükseltme, mobil veri tasarrufu, içerik ülkesi seçimi
+
 **Görünüm**
 - Dinamik vurgu rengi: çalan şarkının kapağından çıkarılır, akıcı geçişle değişir
 - Açık / koyu / sistem teması

@@ -224,6 +224,13 @@ class PlayerConnection(private val context: Context, private val scope: Coroutin
 
     fun resetSpeedAndPitch() = setSpeedAndPitch(1f, 0f)
 
+    /** Çalmayı durdurur ve sırayı tamamen boşaltır (mini oynatıcı kapanır). */
+    fun stopAndClear() = withController { c ->
+        c.stop()
+        c.clearMediaItems()
+        context.container.settings.lastQueue.set("")
+    }
+
     fun currentItem(): MediaItem? = controller?.currentMediaItem
 
     fun release() {

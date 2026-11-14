@@ -1,5 +1,11 @@
 package com.alideniz.adtmusic.ui.screens
 
+import android.os.Build
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -7,6 +13,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -51,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -70,6 +79,7 @@ import com.alideniz.adtmusic.ui.LocalAppUi
 import com.alideniz.adtmusic.ui.Routes
 import com.alideniz.adtmusic.ui.SheetSpec
 import com.alideniz.adtmusic.ui.components.Cover
+import com.alideniz.adtmusic.ui.components.DownloadButton
 import com.alideniz.adtmusic.ui.components.IconBtn
 import com.alideniz.adtmusic.ui.components.LoadingBlock
 import com.alideniz.adtmusic.ui.components.SeekBar
@@ -97,7 +107,18 @@ fun PlayerScreen() {
     val scope = rememberCoroutineScope()
     val liked = song.id in likedIds
     val soundChanged = kotlin.math.abs(state.speed - 1f) > 0.001f || kotlin.math.abs(state.semitones) > 0.05f
-    val bg by animateColorAsState(c.tint(if (c.isDark) 0.14f else 0.08f), tween(700), label = "bg")
+    val bgStyle by app.settings.playerBackground.flow.collectAsState()
+    val bg by animateColorAsState(
+        if (bgStyle == "plain") c.paper else c.tint(if (c.isDark) 0.14f else 0.08f),
+        tween(700), label = "bg",
+    )
+    val heartScale = remember { Animatable(1f) }
+    LaunchedEffect(liked) {
+        if (liked) {
+            heartScale.animateTo(1.35f, spring(dampingRatio = 0.5f, stiffness = 800f))
+            heartScale.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 300f))
+        }
+    }
 
     val dismissOffset = remember { Animatable(0f) }
 
@@ -123,6 +144,15 @@ fun PlayerScreen() {
                 )
             }
     ) {
+        if (bgStyle == "blur") {
+            coil.compose.AsyncImage(
+                model = song.thumbnail,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().blur(70.dp).graphicsLayer { alpha = 0.55f },
+            )
+            Box(Modifier.fillMaxSize().background(c.paper.copy(alpha = if (c.isDark) 0.55f else 0.62f)))
+        }
         Column(
             Modifier
                 .fillMaxSize()
@@ -241,11 +271,12 @@ fun PlayerScreen() {
                 Box(
                     Modifier
                         .size(76.dp)
+                        .clip(AdtTheme.shape)
                         .background(c.accent)
                         .press(label = if (state.isPlaying) "Duraklat" else "Çal") { app.player.togglePlay() },
                     contentAlignment = Alignment.Center,
                 ) {
-                    AdtIcon(if (state.isPlaying) AdtIcons.Pause else AdtIcons.Play, null, tint = c.onAccent, size = 32.dp)
+                    PlayPauseIcon(state.isPlaying, c.onAccent, 32.dp)
                 }
                 Spacer(Modifier.width(12.dp))
                 OutlinedControl(AdtIcons.Previous, "Önceki") { app.player.previous() }
@@ -262,6 +293,7 @@ fun PlayerScreen() {
                     },
                     tint = if (liked) c.accent else c.ink,
                     size = 52.dp, iconSize = 28.dp,
+                    modifier = Modifier.graphicsLayer { scaleX = heartScale.value; scaleY = heartScale.value },
                 )
             }
             Spacer(Modifier.height(18.dp))
@@ -281,18 +313,13 @@ fun PlayerScreen() {
                 )
                 IconBtn(AdtIcons.Lyrics, "Sözler", { ui.lyricsMode = !ui.lyricsMode }, tint = if (ui.lyricsMode) c.accent else c.ink, iconSize = 20.dp)
                 IconBtn(AdtIcons.Queue, "Sıra", { ui.show(SheetSpec.Queue) }, iconSize = 20.dp)
-                IconBtn(
-                    if (dl?.state == DlState.DONE) AdtIcons.Check else AdtIcons.Download,
-                    "İndir",
-                    {
-                        when (dl?.state) {
-                            DlState.DONE -> app.toast("Bu şarkı zaten indirildi")
-                            DlState.DOWNLOADING, DlState.QUEUED -> app.toast("İndiriliyor… %${((dl?.progress ?: 0f) * 100).toInt()}")
-                            else -> { app.downloads.download(song); app.toast("İndirme başladı") }
-                        }
-                    },
-                    tint = if (dl?.state == DlState.DONE) c.accent else c.ink, iconSize = 20.dp,
-                )
+                DownloadButton(dl, {
+                    when (dl?.state) {
+                        DlState.DONE -> app.toast("Bu şarkı indirildi ✓")
+                        DlState.DOWNLOADING, DlState.QUEUED -> app.toast("İndiriliyor… %${((dl?.progress ?: 0f) * 100).toInt()}")
+                        else -> { app.downloads.download(song); app.toast("İndirme başladı") }
+                    }
+                }, iconSize = 20.dp)
                 Box(contentAlignment = Alignment.Center) {
                     IconBtn(AdtIcons.Speed, "Hız ve ton", { ui.show(SheetSpec.Speed) }, tint = if (soundChanged) c.accent else c.ink, iconSize = 20.dp)
                 }
@@ -437,6 +464,9 @@ fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
 private fun SyncedLyrics(lyrics: Lyrics, progress: Progress, textSize: Int) {
     val app = LocalContext.current.container
     val c = AdtTheme.colors
+    val animation by app.settings.lyricsAnimation.flow.collectAsState()
+    val align by app.settings.lyricsAlign.flow.collectAsState()
+    val textAlign = if (align == "center") TextAlign.Center else TextAlign.Start
     val listState = rememberLazyListState()
     val lines = lyrics.lines
     val pos = progress.position + 250 // küçük bir öne alma: satır geçişi daha doğal görünür
@@ -466,25 +496,82 @@ private fun SyncedLyrics(lyrics: Lyrics, progress: Progress, textSize: Int) {
     ) {
         itemsIndexed(lines, key = { i, l -> "$i-${l.timeMs}" }) { i, line ->
             val isCurrent = i == currentIndex
-            val style = AdtTheme.type.headline.copy(
+            val distance = if (currentIndex < 0) i + 1 else kotlin.math.abs(i - currentIndex)
+            val baseStyle = AdtTheme.type.headline.copy(
                 fontSize = textSize.sp,
                 lineHeight = (textSize * 1.15f).sp,
                 fontWeight = FontWeight.ExtraBold,
+                textAlign = textAlign,
             )
             val text = line.text.ifBlank { "♪" }
+            val next = lines.getOrNull(i + 1)?.timeMs ?: (line.timeMs + 4000)
+            val f = if (isCurrent) ((pos - line.timeMs).toFloat() / (next - line.timeMs).coerceAtLeast(1)).coerceIn(0f, 1f) else 0f
+
+            val targetScale = when {
+                !isCurrent -> 1f
+                animation == "glow" -> 1.06f
+                animation == "focus" -> 1.04f
+                else -> 1f
+            }
+            val targetAlpha = when (animation) {
+                "focus" -> if (isCurrent) 1f else (1f - distance * 0.22f).coerceAtLeast(0.15f)
+                "glow" -> if (isCurrent) 1f else 0.35f
+                else -> 1f
+            }
+            val scale by animateFloatAsState(targetScale, spring(dampingRatio = 0.6f, stiffness = 300f), label = "lyScale")
+            val alpha by animateFloatAsState(targetAlpha, tween(350), label = "lyAlpha")
+            val blur = if (animation == "focus" && !isCurrent && Build.VERSION.SDK_INT >= 31) (distance * 1.2f).coerceAtMost(4f).dp else 0.dp
+
             val modifier = Modifier
                 .fillMaxWidth()
                 .press(label = "Buraya atla") { app.player.seekTo(line.timeMs) }
                 .padding(vertical = 10.dp)
-            if (isCurrent) {
-                val next = lines.getOrNull(i + 1)?.timeMs ?: (line.timeMs + 4000)
-                val f = ((pos - line.timeMs).toFloat() / (next - line.timeMs).coerceAtLeast(1)).coerceIn(0f, 1f)
-                val brush = Brush.horizontalGradient(
-                    0f to c.accent, f to c.accent, (f + 0.02f).coerceAtMost(1f) to c.ink, 1f to c.ink,
-                )
-                androidx.compose.foundation.text.BasicText(text, modifier, style = style.merge(TextStyle(brush = brush)))
-            } else {
-                Txt(text, style, modifier = modifier, color = if (i < currentIndex) c.faint else c.muted)
+                .graphicsLayer {
+                    scaleX = scale; scaleY = scale; this.alpha = alpha
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(if (textAlign == TextAlign.Center) 0.5f else 0f, 0.5f)
+                }
+                .then(if (blur > 0.dp) Modifier.blur(blur) else Modifier)
+
+            val pastColor = if (animation == "fill" || animation == "word") c.faint else c.muted
+            when {
+                isCurrent && animation == "fill" -> {
+                    val brush = Brush.horizontalGradient(
+                        0f to c.accent, f to c.accent, (f + 0.02f).coerceAtMost(1f) to c.ink, 1f to c.ink,
+                    )
+                    androidx.compose.foundation.text.BasicText(text, modifier, style = baseStyle.merge(TextStyle(brush = brush)))
+                }
+                isCurrent && animation == "word" -> {
+                    // Kelime kelime: süre, harf sayısına göre kelimelere paylaştırılır.
+                    val words = text.split(" ")
+                    val total = words.sumOf { it.length + 1 }.coerceAtLeast(1)
+                    val annotated = androidx.compose.ui.text.buildAnnotatedString {
+                        var acc = 0
+                        words.forEachIndexed { wi, w ->
+                            val start = acc.toFloat() / total
+                            acc += w.length + 1
+                            val end = acc.toFloat() / total
+                            val color = when {
+                                f >= end -> c.accent
+                                f > start -> androidx.compose.ui.graphics.lerp(c.ink, c.accent, ((f - start) / (end - start)).coerceIn(0f, 1f))
+                                else -> c.ink
+                            }
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = color)) { append(w) }
+                            if (wi < words.size - 1) append(" ")
+                        }
+                    }
+                    androidx.compose.foundation.text.BasicText(annotated, modifier, style = baseStyle)
+                }
+                isCurrent && animation == "glow" -> {
+                    androidx.compose.foundation.text.BasicText(
+                        text, modifier,
+                        style = baseStyle.copy(
+                            color = c.accent,
+                            shadow = androidx.compose.ui.graphics.Shadow(c.accent.copy(alpha = 0.7f), blurRadius = 28f),
+                        ),
+                    )
+                }
+                isCurrent -> Txt(text, baseStyle, modifier = modifier, color = c.ink)
+                else -> Txt(text, baseStyle, modifier = modifier, color = if (i < currentIndex) pastColor else c.muted)
             }
         }
     }
@@ -513,17 +600,46 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
     val song = state.current ?: return
     val scope = rememberCoroutineScope()
     val offset = remember { Animatable(0f) }
+    val dragY = remember { Animatable(0f) }
+    val showProgress by app.settings.miniPlayerProgress.flow.collectAsState()
 
     Column(
         modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                translationY = dragY.value.coerceAtLeast(0f)
+                alpha = 1f - (dragY.value / 260f).coerceIn(0f, 0.85f)
+            }
             .background(c.paper)
             .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dy -> if (dy < -12) ui.openPlayer() }
+                // Yukarı kaydır: oynatıcıyı aç. Aşağı kaydır: çalmayı durdur ve kapat.
+                detectVerticalDragGestures(
+                    onDragEnd = {
+                        scope.launch {
+                            when {
+                                dragY.value > 120f -> {
+                                    dragY.animateTo(400f, tween(160))
+                                    app.player.stopAndClear()
+                                    app.toast("Çalma durduruldu")
+                                    dragY.snapTo(0f)
+                                }
+                                dragY.value < -50f -> {
+                                    dragY.snapTo(0f)
+                                    ui.openPlayer()
+                                }
+                                else -> dragY.animateTo(0f, spring(dampingRatio = 0.6f))
+                            }
+                        }
+                    },
+                    onDragCancel = { scope.launch { dragY.animateTo(0f) } },
+                    onVerticalDrag = { ch, dy -> ch.consume(); scope.launch { dragY.snapTo(dragY.value + dy) } },
+                )
             }
     ) {
-        Box(Modifier.fillMaxWidth().height(2.dp).background(c.line)) {
-            Box(Modifier.fillMaxHeight().fillMaxWidth(progress.fraction).background(c.accent))
+        if (showProgress) {
+            Box(Modifier.fillMaxWidth().height(2.dp).background(c.line)) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth(progress.fraction).background(c.accent))
+            }
         }
         Row(
             Modifier
@@ -561,12 +677,27 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
                 }
             }
             Box(
-                Modifier.size(48.dp).background(c.ink).press(label = if (state.isPlaying) "Duraklat" else "Çal") { app.player.togglePlay() },
+                Modifier.size(48.dp).clip(AdtTheme.shape).background(c.ink).press(label = if (state.isPlaying) "Duraklat" else "Çal") { app.player.togglePlay() },
                 contentAlignment = Alignment.Center,
             ) {
-                AdtIcon(if (state.isPlaying) AdtIcons.Pause else AdtIcons.Play, null, tint = c.paper, size = 22.dp)
+                PlayPauseIcon(state.isPlaying, c.paper, 22.dp)
             }
             IconBtn(AdtIcons.Next, "Sonraki", { app.player.next() }, enabled = state.hasNext)
         }
+    }
+}
+
+/** Çal/Duraklat simgesi: dönerek ve büyüyerek değişir. */
+@Composable
+fun PlayPauseIcon(playing: Boolean, tint: Color, size: androidx.compose.ui.unit.Dp) {
+    AnimatedContent(
+        targetState = playing,
+        transitionSpec = {
+            (scaleIn(spring(dampingRatio = 0.55f, stiffness = 600f), initialScale = 0.4f) + fadeIn(tween(120))) togetherWith
+                (scaleOut(tween(120), targetScale = 0.4f) + fadeOut(tween(100)))
+        },
+        label = "playPause",
+    ) { p ->
+        AdtIcon(if (p) AdtIcons.Pause else AdtIcons.Play, if (p) "Duraklat" else "Çal", tint = tint, size = size)
     }
 }

@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -93,9 +94,12 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch {
             runCatching {
                 val seed = app.dao.lastPlayed()?.toSong()
-                app.youtube.home(seed)
+                val followed = app.dao.followedArtistsOnce().map { it.name }
+                app.youtube.home(seed, followed)
             }.onSuccess {
                 feed = it
+                // YouTube oynatıcı çözücüsünü ısıt: ilk şarkı anında açılsın.
+                (it.quickPicks.firstOrNull() ?: it.trending.firstOrNull())?.let { s -> app.media.warmUrl(s.id) }
                 if (it.trending.isEmpty() && it.quickPicks.isEmpty() && it.featured.isEmpty()) {
                     error = "YouTube Music'e ulaşılamadı."
                 }
@@ -112,7 +116,14 @@ fun HomeScreen() {
     val app = LocalContext.current.container
     val ui = LocalAppUi.current
     val c = AdtTheme.colors
-    val vm: HomeViewModel = viewModel { HomeViewModel(app) }
+    val activity = LocalContext.current as ComponentActivity
+    // Etkinlik düzeyinde: sekme değişince ana sayfa yeniden yüklenmez.
+    val vm: HomeViewModel = viewModel(viewModelStoreOwner = activity) { HomeViewModel(app) }
+    val showRecent by app.settings.homeShowRecent.flow.collectAsState()
+    val showFollowed by app.settings.homeShowFollowed.flow.collectAsState()
+    val showTrending by app.settings.homeShowTrending.flow.collectAsState()
+    val showAlbums by app.settings.homeShowAlbums.flow.collectAsState()
+    val totalPlays by remember { app.dao.totalPlays() }.collectAsState(initial = 0)
     val recent by remember { app.dao.recentSongs(12) }.collectAsState(initial = emptyList())
     val player by app.player.state.collectAsState()
     val likedIds by app.likedIds.collectAsState()
@@ -136,7 +147,24 @@ fun HomeScreen() {
                 "Bugün ne dinlemek istersin?", AdtTheme.type.body, color = c.muted,
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
+            // ---- arama çubuğu (Ara sekmesine götürür)
+            Row(
+                Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(AdtTheme.shape)
+                    .background(c.surface)
+                    .press(label = "Ara") { ui.navigate(Routes.SEARCH) }
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AdtIcon(AdtIcons.Search, null, size = 20.dp)
+                Spacer(Modifier.width(12.dp))
+                Txt("Şarkı, sanatçı, albüm ara", AdtTheme.type.bodyStrong, color = c.faint, modifier = Modifier.weight(1f), maxLines = 1)
+            }
+            Spacer(Modifier.height(16.dp))
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -147,7 +175,14 @@ fun HomeScreen() {
             }
         }
 
-        if (recent.isNotEmpty()) {
+        if (totalPlays >= 5) {
+            item {
+                Spacer(Modifier.height(22.dp))
+                WrappedBanner { ui.navigate(Routes.WRAPPED) }
+            }
+        }
+
+        if (showRecent && recent.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(30.dp))
                 SectionTitle("Tekrar dinle", action = "Geçmiş", onAction = { ui.navigate(Routes.HISTORY) })
@@ -215,7 +250,27 @@ fun HomeScreen() {
                 }
             }
 
-            if (feed.trending.isNotEmpty()) {
+            if (showFollowed && feed.followedSongs.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(30.dp))
+                    SectionTitle("Takip ettiklerinden", action = "Sanatçılar", onAction = { ui.navigate(Routes.FOLLOWING) })
+                    Spacer(Modifier.height(14.dp))
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        itemsIndexed(feed.followedSongs, key = { _, s -> "f-${s.id}" }) { i, s ->
+                            SongCard(
+                                s,
+                                onClick = { app.player.play(feed.followedSongs, i) },
+                                onLongClick = { ui.show(SheetSpec.SongOptions(s)) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (showTrending && feed.trending.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(30.dp))
                     SectionTitle("Trendler", action = "Tümü", onAction = { ui.navigate(Routes.mood("Trendler", TRENDING_QUERY)) })
@@ -254,7 +309,7 @@ fun HomeScreen() {
                 }
             }
 
-            if (feed.newReleases.isNotEmpty()) {
+            if (showAlbums && feed.newReleases.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(30.dp))
                     SectionTitle("Albümler")
@@ -284,6 +339,32 @@ fun HomeScreen() {
 }
 
 const val TRENDING_QUERY = "__trending__"
+
+/** Ana sayfadaki "Wrapped" kartı. */
+@Composable
+fun WrappedBanner(onClick: () -> Unit) {
+    val c = AdtTheme.colors
+    Row(
+        Modifier
+            .padding(horizontal = 20.dp)
+            .fillMaxWidth()
+            .clip(AdtTheme.shape)
+            .background(c.ink)
+            .press(label = "ADT Wrapped", onClick = onClick)
+            .padding(18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Txt("ADT WRAPPED", AdtTheme.type.label, color = c.accent)
+            Spacer(Modifier.height(4.dp))
+            Txt("Müzik yılın hazır.", AdtTheme.type.headline, color = c.paper)
+            Txt("Kaydır, gör, paylaş.", AdtTheme.type.caption, color = c.paper.copy(alpha = 0.7f))
+        }
+        Box(Modifier.size(52.dp).clip(CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
+            AdtIcon(AdtIcons.Wrapped, null, tint = c.onAccent, size = 26.dp)
+        }
+    }
+}
 
 /** "ADT" yazısı ve turuncu daire içinde nota: uygulamanın logosu. */
 @Composable

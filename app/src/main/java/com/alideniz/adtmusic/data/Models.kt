@@ -79,6 +79,7 @@ data class HomeFeed(
     val trending: List<Song> = emptyList(),
     val featured: List<CollectionRef> = emptyList(),
     val newReleases: List<CollectionRef> = emptyList(),
+    val followedSongs: List<Song> = emptyList(),
 )
 
 /** Zaman damgalı söz satırı. [timeMs] < 0 ise senkron değildir. */

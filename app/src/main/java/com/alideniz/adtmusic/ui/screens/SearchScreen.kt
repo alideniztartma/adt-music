@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -97,6 +98,7 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
             suggestions = emptyList()
             return
         }
+        if (!app.settings.searchSuggestions.value) return
         suggestJob = viewModelScope.launch {
             delay(220)
             suggestions = app.youtube.suggestions(q)
@@ -194,7 +196,8 @@ fun SearchScreen() {
     val app = LocalContext.current.container
     val ui = LocalAppUi.current
     val c = AdtTheme.colors
-    val vm: SearchViewModel = viewModel { SearchViewModel(app) }
+    val activity = LocalContext.current as ComponentActivity
+    val vm: SearchViewModel = viewModel(viewModelStoreOwner = activity) { SearchViewModel(app) }
     val history by remember { app.dao.searchHistory() }.collectAsState(initial = emptyList())
     val player by app.player.state.collectAsState()
     val likedIds by app.likedIds.collectAsState()

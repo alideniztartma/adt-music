@@ -23,6 +23,7 @@ import com.alideniz.adtmusic.playback.SleepTimer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -82,6 +83,11 @@ class AppContainer(val context: Context) {
         .map { it.toSet() }
         .stateIn(appScope, SharingStarted.Eagerly, emptySet())
 
+    /** Takip edilen sanatçı adları. */
+    val followed: StateFlow<Set<String>> = dao.followedNames()
+        .map { it.toSet() }
+        .stateIn(appScope, SharingStarted.Eagerly, emptySet())
+
     val youtube = YouTubeRepository()
     val lyrics = LyricsRepository(httpClient, dao)
 
@@ -95,15 +101,34 @@ class AppContainer(val context: Context) {
     /** Kullanıcıya gösterilecek kısa bildirimler (hata, "listeye eklendi" vb.). */
     val messages: SharedFlow<String> = _messages.asSharedFlow()
 
+    /** İçerik ülkesini değiştirir (trendler ve öneriler o ülkeye göre gelir). */
+    fun setCountry(code: String) {
+        settings.contentCountry.set(code)
+        NewPipe.setupLocalization(Localization("tr", "TR"), ContentCountry(code))
+    }
+
     fun toast(message: String) {
         mainHandler.post { _messages.tryEmit(message) }
     }
 
     init {
+        // Beğenilenleri otomatik indir (ayar açıksa): yeni beğenilen şarkıyı yakala.
+        appScope.launch {
+            var previous: Set<String>? = null
+            dao.likedIds().collect { list ->
+                val now = list.toSet()
+                val prev = previous
+                previous = now
+                if (prev == null || !settings.autoDownloadLiked.value) return@collect
+                (now - prev).forEach { id ->
+                    dao.song(id)?.let { downloads.download(it.toSong()) }
+                }
+            }
+        }
         NewPipe.init(
             NewPipeDownloader(httpClient),
             Localization("tr", "TR"),
-            ContentCountry("TR"),
+            ContentCountry(settings.contentCountry.value),
         )
     }
 }

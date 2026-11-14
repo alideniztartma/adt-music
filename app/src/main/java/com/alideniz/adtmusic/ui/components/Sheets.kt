@@ -176,7 +176,7 @@ private fun SongOptionsContent(spec: SheetSpec.SongOptions, ui: AppUi) {
         SheetItem(AdtIcons.PlaylistAdd, "Çalma listesine ekle", { ui.show(SheetSpec.AddToPlaylist(listOf(song))) })
         when (dl?.state) {
             DlState.DONE -> SheetItem(AdtIcons.Trash, "İndirmeyi sil", { app.downloads.remove(song.id); ui.dismiss() })
-            DlState.DOWNLOADING, DlState.QUEUED -> SheetItem(AdtIcons.Close, "İndirmeyi iptal et", { app.downloads.remove(song.id); ui.dismiss() })
+            DlState.DOWNLOADING, DlState.QUEUED -> SheetItem(AdtIcons.Close, "İndiriliyor %${((dl?.progress ?: 0f) * 100).toInt()} · iptal et", { app.downloads.remove(song.id); ui.dismiss() })
             else -> SheetItem(AdtIcons.Download, "İndir", {
                 app.downloads.download(song)
                 app.toast("İndirme başladı")

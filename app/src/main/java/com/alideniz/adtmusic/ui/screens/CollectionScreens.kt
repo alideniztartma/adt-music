@@ -49,6 +49,7 @@ import com.alideniz.adtmusic.ui.components.Btn
 import com.alideniz.adtmusic.ui.components.BtnStyle
 import com.alideniz.adtmusic.ui.components.CollectionCard
 import com.alideniz.adtmusic.ui.components.Cover
+import com.alideniz.adtmusic.ui.components.DownloadButton
 import com.alideniz.adtmusic.ui.components.IconBtn
 import com.alideniz.adtmusic.ui.components.Line
 import com.alideniz.adtmusic.ui.components.LoadingBlock
@@ -61,6 +62,7 @@ import com.alideniz.adtmusic.ui.theme.AdtTheme
 import com.alideniz.adtmusic.util.formatDuration
 import com.alideniz.adtmusic.util.shareText
 import kotlinx.coroutines.launch
+import androidx.compose.animation.togetherWith
 
 sealed interface Load<out T> {
     data object Loading : Load<Nothing>
@@ -162,16 +164,10 @@ fun CollectionScreen(url: String, kind: CollectionKind) {
                     }
                     Spacer(Modifier.height(18.dp))
                     PlayButtons(d.songs) {
-                        val allDone = d.songs.isNotEmpty() && d.songs.all { downloads[it.id]?.state == DlState.DONE }
-                        IconBtn(
-                            if (allDone) AdtIcons.Check else AdtIcons.Download,
-                            "Hepsini indir",
-                            {
-                                app.downloads.downloadAll(d.songs)
-                                app.toast("${d.songs.size} şarkı indirme sırasına alındı")
-                            },
-                            tint = if (allDone) c.accent else c.ink,
-                        )
+                        DownloadButton(aggregateDownload(d.songs, downloads), {
+                            app.downloads.downloadAll(d.songs)
+                            app.toast("${d.songs.size} şarkı indirme sırasına alındı")
+                        })
                         IconBtn(AdtIcons.PlaylistAdd, "Kütüphaneye kaydet", {
                             scope.launch {
                                 val id = app.dao.createPlaylistWith(d.title, d.songs, d.url)
@@ -227,6 +223,8 @@ fun ArtistScreen(name: String, thumb: String?) {
                 Txt("SANATÇI", AdtTheme.type.label, color = c.accent)
                 Spacer(Modifier.height(4.dp))
                 Txt(name, AdtTheme.type.hero, maxLines = 3)
+                Spacer(Modifier.height(14.dp))
+                FollowButton(name, art)
             }
             Spacer(Modifier.height(18.dp))
         }
@@ -397,7 +395,7 @@ fun LocalPlaylistScreen(id: Long) {
             Spacer(Modifier.height(18.dp))
             if (songs.isNotEmpty()) {
                 PlayButtons(songs) {
-                    IconBtn(AdtIcons.Download, "Hepsini indir", {
+                    DownloadButton(aggregateDownload(songs, downloads), {
                         app.downloads.downloadAll(songs)
                         app.toast("İndirme sırasına alındı")
                     })
@@ -448,5 +446,51 @@ fun MosaicCover(urls: List<String?>, modifier: Modifier = Modifier) {
             Cover(distinct[2], Modifier.weight(1f).aspectRatio(1f))
             Cover(distinct[3], Modifier.weight(1f).aspectRatio(1f))
         }
+    }
+}
+
+/** Bir listenin toplam indirme durumu: hepsi indiyse tik, iniyorsa ortalama ilerleme. */
+fun aggregateDownload(songs: List<Song>, downloads: Map<String, com.alideniz.adtmusic.playback.DlInfo>): com.alideniz.adtmusic.playback.DlInfo? {
+    if (songs.isEmpty()) return null
+    val infos = songs.map { downloads[it.id] }
+    if (infos.all { it?.state == DlState.DONE }) return com.alideniz.adtmusic.playback.DlInfo(DlState.DONE, 1f)
+    val active = infos.any { it?.state == DlState.DOWNLOADING || it?.state == DlState.QUEUED }
+    if (!active) return null
+    val progress = infos.sumOf { (if (it?.state == DlState.DONE) 1f else it?.progress ?: 0f).toDouble() } / songs.size
+    return com.alideniz.adtmusic.playback.DlInfo(DlState.DOWNLOADING, progress.toFloat())
+}
+
+/** Sanatçıyı takip et / takibi bırak. Takip ettiklerin ana sayfada "Takip ettiklerinden" rafında görünür. */
+@Composable
+fun FollowButton(name: String, thumbnail: String?) {
+    val app = LocalContext.current.container
+    val scope = rememberCoroutineScope()
+    val followed by app.followed.collectAsState()
+    val isFollowing = name in followed
+    androidx.compose.animation.AnimatedContent(
+        targetState = isFollowing,
+        transitionSpec = {
+            (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(180)) +
+                androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(dampingRatio = 0.6f), initialScale = 0.9f)) togetherWith
+                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
+        },
+        label = "follow",
+    ) { following ->
+        Btn(
+            if (following) "Takip ediliyor" else "Takip et",
+            {
+                scope.launch {
+                    if (following) {
+                        app.dao.unfollow(name)
+                    } else {
+                        app.dao.follow(com.alideniz.adtmusic.data.db.FollowedArtistEntity(name, thumbnail))
+                        app.toast("$name takip ediliyor")
+                    }
+                }
+            },
+            icon = if (following) AdtIcons.Following else AdtIcons.FollowAdd,
+            style = if (following) BtnStyle.OUTLINE else BtnStyle.INK,
+            height = 42.dp,
+        )
     }
 }

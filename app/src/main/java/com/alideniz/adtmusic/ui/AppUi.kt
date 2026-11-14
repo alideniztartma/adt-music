@@ -79,6 +79,8 @@ object Routes {
     const val STATS = "stats"
     const val SETTINGS = "settings"
     const val EQUALIZER = "equalizer"
+    const val WRAPPED = "wrapped"
+    const val FOLLOWING = "following"
     const val COLLECTION = "collection?url={url}&kind={kind}"
     const val ARTIST = "artist?name={name}&thumb={thumb}"
     const val PLAYLIST = "playlist/{id}"

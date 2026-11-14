@@ -1,5 +1,18 @@
 package com.alideniz.adtmusic.ui.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -36,6 +49,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -113,21 +129,68 @@ fun SongRow(
 
 @Composable
 fun DownloadBadge(info: DlInfo?) {
-    val c = AdtTheme.colors
     when (info?.state) {
-        DlState.DONE -> {
-            Box(Modifier.size(14.dp).background(c.ink), contentAlignment = Alignment.Center) {
-                AdtIcon(AdtIcons.Download, "İndirildi", tint = c.paper, size = 10.dp)
-            }
-            Spacer(Modifier.width(6.dp))
-        }
-        DlState.DOWNLOADING, DlState.QUEUED -> {
-            Box(Modifier.size(14.dp).border(1.dp, c.ink)) {
-                Box(Modifier.fillMaxHeight().fillMaxWidth((info?.progress ?: 0f).coerceIn(0.05f, 1f)).background(c.accent))
-            }
+        DlState.DONE, DlState.DOWNLOADING, DlState.QUEUED -> {
+            DownloadGlyph(info, Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
         }
         else -> Unit
+    }
+}
+
+/**
+ * İndirme durumunu gösteren simge:
+ * indirilmemiş → aşağı ok, sırada → dönen halka, iniyor → dolan halka, indi → tik.
+ */
+@Composable
+fun DownloadGlyph(info: DlInfo?, modifier: Modifier = Modifier, tint: Color = AdtTheme.colors.ink) {
+    val c = AdtTheme.colors
+    val state = info?.state
+    val target = info?.progress ?: 0f
+    val progress by animateFloatAsState(target, tween(400), label = "dl")
+    val spin = rememberInfiniteTransition(label = "spin")
+    val angle by spin.animateFloat(0f, 360f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "angle")
+    AnimatedContent(
+        targetState = state == DlState.DONE,
+        transitionSpec = { (scaleIn(spring(dampingRatio = 0.5f)) + fadeIn()) togetherWith fadeOut(tween(120)) },
+        label = "dlDone",
+        modifier = modifier,
+    ) { done ->
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when {
+                done -> Box(Modifier.fillMaxSize().clip(CircleShape).background(c.accent), contentAlignment = Alignment.Center) {
+                    AdtIcon(AdtIcons.Check, "İndirildi", tint = c.onAccent, size = null, modifier = Modifier.fillMaxSize(0.62f))
+                }
+                state == DlState.DOWNLOADING || state == DlState.QUEUED -> {
+                    val indeterminate = state == DlState.QUEUED || progress < 0.02f
+                    Canvas(Modifier.fillMaxSize()) {
+                        val stroke = (size.minDimension * 0.11f).coerceAtLeast(2f)
+                        val inset = stroke / 2
+                        val arcSize = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke)
+                        val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+                        drawArc(c.line, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
+                        if (indeterminate) {
+                            drawArc(c.accent, angle, 90f, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                        } else {
+                            drawArc(c.accent, -90f, 360f * progress, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                        }
+                    }
+                    AdtIcon(AdtIcons.Download, "İndiriliyor", tint = tint, size = null, modifier = Modifier.fillMaxSize(0.5f))
+                }
+                else -> AdtIcon(AdtIcons.Download, "İndir", tint = if (state == DlState.FAILED) c.accent else tint, size = null, modifier = Modifier.fillMaxSize())
+            }
+        }
+    }
+}
+
+/** Dokunulabilir indirme düğmesi. */
+@Composable
+fun DownloadButton(info: DlInfo?, onClick: () -> Unit, modifier: Modifier = Modifier, size: Dp = 44.dp, iconSize: Dp = 22.dp) {
+    Box(
+        modifier.size(size).press(label = "İndir", onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        DownloadGlyph(info, Modifier.size(iconSize))
     }
 }
 
@@ -342,7 +405,7 @@ fun TextInput(
         modifier
             .fillMaxWidth()
             .height(56.dp)
-            .border(1.5.dp, c.ink)
+            .border(1.5.dp, c.ink, AdtTheme.shape)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

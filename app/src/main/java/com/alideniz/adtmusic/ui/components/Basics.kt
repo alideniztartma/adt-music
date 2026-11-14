@@ -1,5 +1,6 @@
 package com.alideniz.adtmusic.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -69,6 +70,9 @@ fun Txt(
     )
 }
 
+/** Dokunma titreşimi açık mı (Ayarlar → Akıcılık). */
+val LocalHapticsEnabled = androidx.compose.runtime.staticCompositionLocalOf { true }
+
 /** Basınca hafifçe küçülen, dalga efekti olmayan tıklama. */
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.press(
@@ -80,6 +84,8 @@ fun Modifier.press(
 ): Modifier = composed {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val hapticsOn = LocalHapticsEnabled.current
     val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(stiffness = 900f), label = "press")
     this
         .graphicsLayer { scaleX = scale; scaleY = scale }
@@ -89,8 +95,16 @@ fun Modifier.press(
             enabled = enabled,
             role = role,
             onClickLabel = label,
-            onLongClick = onLongClick,
-            onClick = onClick,
+            onLongClick = onLongClick?.let { long ->
+                {
+                    if (hapticsOn) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    long()
+                }
+            },
+            onClick = {
+                if (hapticsOn) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
         )
 }
 
@@ -132,11 +146,13 @@ fun Btn(
         BtnStyle.ACCENT -> c.accent to c.onAccent
         BtnStyle.OUTLINE -> Color.Transparent to c.ink
     }
+    val shape = AdtTheme.shape
     Row(
         modifier = modifier
             .height(height)
+            .clip(shape)
             .background(bg)
-            .then(if (style == BtnStyle.OUTLINE) Modifier.border(1.dp, c.ink) else Modifier)
+            .then(if (style == BtnStyle.OUTLINE) Modifier.border(1.dp, c.ink, shape) else Modifier)
             .press(label = text, onClick = onClick)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -153,16 +169,20 @@ fun Btn(
 @Composable
 fun Chip(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val c = AdtTheme.colors
+    val shape = AdtTheme.shape
+    val bg by animateColorAsState(if (selected) c.ink else Color.Transparent, tween(180), label = "chipBg")
+    val fg by animateColorAsState(if (selected) c.paper else c.ink, tween(180), label = "chipFg")
     Box(
         modifier = modifier
             .height(36.dp)
-            .background(if (selected) c.ink else Color.Transparent)
-            .border(1.dp, if (selected) c.ink else c.line)
+            .clip(shape)
+            .background(bg)
+            .border(1.dp, if (selected) c.ink else c.line, shape)
             .press(role = Role.Tab, label = text, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Txt(text, AdtTheme.type.caption, color = if (selected) c.paper else c.ink, maxLines = 1)
+        Txt(text, AdtTheme.type.caption, color = fg, maxLines = 1)
     }
 }
 
@@ -201,7 +221,7 @@ fun Line(modifier: Modifier = Modifier, color: Color = AdtTheme.colors.line) {
 fun Cover(
     url: String?,
     modifier: Modifier = Modifier,
-    shape: Shape = RectangleShape,
+    shape: Shape = AdtTheme.shape,
     contentDescription: String? = null,
 ) {
     val c = AdtTheme.colors

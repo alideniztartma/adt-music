@@ -36,6 +36,21 @@ object AdtIcons {
             d.forEach { addPath(pathData = addPathNodes(it), fill = SolidColor(Color.Black)) }
         }.build()
 
+    /** Hem çizgi hem dolgu içeren simgeler için. */
+    private fun mixed(name: String, strokes: List<String>, fills: List<String>, width: Float = 2f) =
+        ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {
+            strokes.forEach {
+                addPath(
+                    pathData = addPathNodes(it),
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = width,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+            }
+            fills.forEach { addPath(pathData = addPathNodes(it), fill = SolidColor(Color.Black)) }
+        }.build()
+
     private const val HEART =
         "M12 20s-7-4.4-9.2-8.6C1.2 8.2 3 4.5 6.6 4.5c2.1 0 3.4 1.2 5.4 3.3 2-2.1 3.3-3.3 5.4-3.3 3.6 0 5.4 3.7 3.8 6.9C19 15.6 12 20 12 20z"
 
@@ -62,16 +77,26 @@ object AdtIcons {
     )
     val Download = stroke("download", "M12 3v12", "M7 10l5 5 5-5", "M5 21h14")
     val Check = stroke("check", "M5 12.5l4.5 4.5L19 7")
-    val Lyrics = stroke("lyrics", "M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z", "M5 10a7 7 0 0 0 14 0", "M12 17v5")
+    /** Sözler: metin satırları ve köşede bir nota. */
+    val Lyrics = mixed(
+        "lyrics",
+        strokes = listOf("M3 5h15", "M3 10h11", "M3 15h8", "M3 20h6", "M19.5 17.5V9l2.5-1"),
+        fills = listOf("M17.4 15.6a2.1 2.1 0 1 1 0 4.2a2.1 2.1 0 1 1 0-4.2z"),
+    )
     val Queue = stroke("queue", "M4 6h16", "M4 12h16", "M4 18h10")
     val Equalizer = stroke("eq", "M4 21v-7", "M4 10V3", "M12 21v-9", "M12 8V3", "M20 21v-5", "M20 12V3", "M1 14h6", "M9 8h6", "M17 16h6")
     val Moon = stroke("moon", "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z")
     val Share = stroke("share", "M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7", "M16 6l-4-4-4 4", "M12 2v13")
     val Plus = stroke("plus", "M12 5v14", "M5 12h14")
     val Close = stroke("close", "M6 6l12 12", "M18 6L6 18")
-    val Settings = stroke(
-        "settings", "M12 9a3 3 0 1 1 0 6a3 3 0 1 1 0-6z", "M12 2v3", "M12 19v3", "M2 12h3", "M19 12h3",
-        "M4.9 4.9l2.1 2.1", "M17 17l2.1 2.1", "M4.9 19.1L7 17", "M17 7l2.1-2.1",
+    /** Ayarlar: iki kaydırıcı düğmesi (modern "ince ayar" simgesi). */
+    val Settings = mixed(
+        "settings",
+        strokes = listOf("M3 7h9", "M19 7h2", "M3 17h3", "M13 17h8"),
+        fills = listOf(
+            "M15.5 3.8a3.2 3.2 0 1 1 0 6.4a3.2 3.2 0 1 1 0-6.4z",
+            "M9.5 13.8a3.2 3.2 0 1 1 0 6.4a3.2 3.2 0 1 1 0-6.4z",
+        ),
     )
     val Artist = stroke("artist", "M12 4a4 4 0 1 1 0 8a4 4 0 1 1 0-8z", "M4 21a8 8 0 0 1 16 0")
     val Album = stroke("album", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M12 10a2 2 0 1 1 0 4a2 2 0 1 1 0-4z")
@@ -85,6 +110,24 @@ object AdtIcons {
     val Stats = stroke("stats", "M5 20V10", "M12 20V4", "M19 20v-7")
     val Offline = stroke("offline", "M2 2l20 20", "M8.5 16.5a5 5 0 0 1 7 0", "M5 12.9a10 10 0 0 1 5.2-2.7", "M16.8 10.4A10 10 0 0 1 19 12.9", "M12 20h.01")
     val PlaylistAdd = stroke("playlistAdd", "M3 6h12", "M3 12h12", "M3 18h8", "M18 13v8", "M14 17h8")
+    val Wrapped = mixed(
+        "wrapped",
+        strokes = listOf("M4 20V12", "M10 20V6", "M16 20v-9"),
+        fills = listOf("M19.5 2l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"),
+    )
+    val FollowAdd = stroke("follow", "M10 4a4 4 0 1 1 0 8a4 4 0 1 1 0-8z", "M3 21a7 7 0 0 1 12.5-4.3", "M19 14v6", "M16 17h6")
+    val Following = stroke("following", "M10 4a4 4 0 1 1 0 8a4 4 0 1 1 0-8z", "M3 21a7 7 0 0 1 12.5-4.3", "M15.5 18l2 2 4-4.5")
+    val Palette = mixed(
+        "palette",
+        strokes = listOf("M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-1 .8-1.7 1.9-1.7H17a4 4 0 0 0 4-4C21 6.5 17 3 12 3z"),
+        fills = listOf(
+            "M7.5 10a1.3 1.3 0 1 1 0 2.6a1.3 1.3 0 1 1 0-2.6z",
+            "M10 6.3a1.3 1.3 0 1 1 0 2.6a1.3 1.3 0 1 1 0-2.6z",
+            "M14.5 6.3a1.3 1.3 0 1 1 0 2.6a1.3 1.3 0 1 1 0-2.6z",
+        ),
+    )
+    val Upload = stroke("upload", "M12 15V3", "M7 8l5-5 5 5", "M5 21h14")
+    val Globe = stroke("globe", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M3 12h18", "M12 3c2.5 2.7 3.6 5.7 3.6 9s-1.1 6.3-3.6 9c-2.5-2.7-3.6-5.7-3.6-9S9.5 5.7 12 3z")
     val Link = stroke("link", "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1", "M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1")
     val Speed = stroke("speed", "M12 14l4-4", "M3.3 18a10 10 0 1 1 17.4 0")
     val Refresh = stroke("refresh", "M20 11a8 8 0 1 0-2.3 5.7", "M20 4v7h-7")
@@ -107,12 +150,12 @@ fun AdtIcon(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     tint: Color = AdtTheme.colors.ink,
-    size: Dp = 24.dp,
+    size: Dp? = 24.dp,
 ) {
     Image(
         painter = rememberVectorPainter(icon),
         contentDescription = contentDescription,
-        modifier = modifier.size(size),
+        modifier = if (size != null) modifier.size(size) else modifier,
         colorFilter = ColorFilter.tint(tint),
     )
 }

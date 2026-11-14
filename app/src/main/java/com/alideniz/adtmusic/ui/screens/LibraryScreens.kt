@@ -37,6 +37,7 @@ import com.alideniz.adtmusic.ui.SheetSpec
 import com.alideniz.adtmusic.ui.components.Btn
 import com.alideniz.adtmusic.ui.components.BtnStyle
 import com.alideniz.adtmusic.ui.components.Cover
+import com.alideniz.adtmusic.ui.components.DownloadButton
 import com.alideniz.adtmusic.ui.components.IconBtn
 import com.alideniz.adtmusic.ui.components.Line
 import com.alideniz.adtmusic.ui.components.MessageBlock
@@ -64,6 +65,7 @@ fun LibraryScreen() {
     val downloads by app.downloads.states.collectAsState()
     val totalPlays by remember { app.dao.totalPlays() }.collectAsState(initial = 0)
     val doneCount = downloads.count { it.value.state == DlState.DONE }
+    val followed by app.followed.collectAsState()
 
     fun newPlaylist() = ui.show(
         SheetSpec.Input("Yeni çalma listesi", "", "Oluştur") { name ->
@@ -88,6 +90,8 @@ fun LibraryScreen() {
             LibraryRow(AdtIcons.Heart, "Beğenilenler", liked.size.toString()) { ui.navigate(Routes.LIKED) }
             LibraryRow(AdtIcons.Download, "İndirilenler", doneCount.toString()) { ui.navigate(Routes.DOWNLOADS) }
             LibraryRow(AdtIcons.History, "Geçmiş", totalPlays.toString()) { ui.navigate(Routes.HISTORY) }
+            LibraryRow(AdtIcons.Following, "Takip ettiğin sanatçılar", followed.size.toString()) { ui.navigate(Routes.FOLLOWING) }
+            LibraryRow(AdtIcons.Wrapped, "ADT Wrapped", "") { ui.navigate(Routes.WRAPPED) }
             LibraryRow(AdtIcons.Stats, "Dinleme istatistiklerin", "") { ui.navigate(Routes.STATS) }
             LibraryRow(AdtIcons.Equalizer, "Ekolayzer", "") { ui.navigate(Routes.EQUALIZER) }
             Spacer(Modifier.height(32.dp))
@@ -230,7 +234,8 @@ fun LikedScreen() {
         emptyMessage = "Çalan şarkıda kalbe dokun, burada birikir.",
         emptyIcon = AdtIcons.Heart,
         extra = {
-            IconBtn(AdtIcons.Download, "Hepsini indir", {
+            val downloads by app.downloads.states.collectAsState()
+            DownloadButton(aggregateDownload(songs, downloads), {
                 app.downloads.downloadAll(songs)
                 app.toast("Beğenilenler indiriliyor")
             })
@@ -389,5 +394,51 @@ private fun BigNumber(value: String, label: String, modifier: Modifier = Modifie
     Column(modifier.background(c.surface).padding(14.dp)) {
         Txt(value, AdtTheme.type.title, maxLines = 1)
         Txt(label.uppercase(), AdtTheme.type.label, color = c.muted, maxLines = 1)
+    }
+}
+
+@Composable
+fun FollowingScreen() {
+    val app = LocalContext.current.container
+    val ui = LocalAppUi.current
+    val c = AdtTheme.colors
+    val scope = rememberCoroutineScope()
+    val artists by remember { app.dao.followedArtists() }.collectAsState(initial = emptyList())
+    val dateFormat = remember { SimpleDateFormat("d MMMM yyyy", Locale("tr")) }
+
+    LazyColumn(Modifier.fillMaxSize()) {
+        item { ScreenHeader("Sanatçıların", "${artists.size} sanatçı takip ediyorsun", onBack = { ui.back() }) }
+        if (artists.isEmpty()) {
+            item {
+                MessageBlock(
+                    "Henüz kimseyi takip etmiyorsun",
+                    "Bir sanatçının sayfasında \"Takip et\"e dokun. Yeni şarkıları ana sayfanda görünür.",
+                    icon = AdtIcons.FollowAdd,
+                    action = "Sanatçı ara",
+                    onAction = { ui.navigate(Routes.SEARCH) },
+                )
+            }
+        }
+        items(artists, key = { it.name }) { a ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .press(label = a.name) { ui.navigate(Routes.artist(a.name, a.thumbnail)) }
+                    .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Cover(a.thumbnail, Modifier.size(60.dp), shape = androidx.compose.foundation.shape.CircleShape)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Txt(a.name, AdtTheme.type.bodyStrong, maxLines = 1)
+                    Txt("${dateFormat.format(Date(a.followedAt))} tarihinden beri", AdtTheme.type.caption, color = c.muted, maxLines = 1)
+                }
+                IconBtn(AdtIcons.Close, "Takibi bırak", {
+                    scope.launch { app.dao.unfollow(a.name) }
+                    app.toast("${a.name} takipten çıkarıldı")
+                }, tint = c.faint, iconSize = 18.dp)
+            }
+        }
+        item { Spacer(Modifier.height(LocalBottomInset.current + 24.dp)) }
     }
 }

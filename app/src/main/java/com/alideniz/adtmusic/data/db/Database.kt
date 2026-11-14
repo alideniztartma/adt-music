@@ -12,6 +12,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.alideniz.adtmusic.data.Song
 import kotlinx.coroutines.flow.Flow
 
@@ -66,6 +68,13 @@ data class HistoryEntity(
 data class SearchHistoryEntity(
     @PrimaryKey val query: String,
     val at: Long,
+)
+
+@Entity(tableName = "followed_artists")
+data class FollowedArtistEntity(
+    @PrimaryKey val name: String,
+    val thumbnail: String?,
+    val followedAt: Long = System.currentTimeMillis(),
 )
 
 @Entity(tableName = "lyrics")
@@ -247,6 +256,33 @@ abstract class AdtDao {
     @Query("DELETE FROM search_history")
     abstract suspend fun clearSearches()
 
+    // ---- takip edilen sanatçılar
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun follow(e: FollowedArtistEntity)
+
+    @Query("DELETE FROM followed_artists WHERE name = :name")
+    abstract suspend fun unfollow(name: String)
+
+    @Query("SELECT * FROM followed_artists ORDER BY followedAt DESC")
+    abstract fun followedArtists(): Flow<List<FollowedArtistEntity>>
+
+    @Query("SELECT * FROM followed_artists ORDER BY followedAt DESC")
+    abstract suspend fun followedArtistsOnce(): List<FollowedArtistEntity>
+
+    @Query("SELECT name FROM followed_artists")
+    abstract fun followedNames(): Flow<List<String>>
+
+    // ---- Wrapped
+    @Query("SELECT s.*, h.playedAt AS playedAt FROM history h INNER JOIN songs s ON s.id = h.songId WHERE h.playedAt >= :since ORDER BY h.playedAt DESC")
+    abstract suspend fun historySince(since: Long): List<HistoryRow>
+
+    // ---- yedekleme
+    @Query("SELECT * FROM songs WHERE likedAt IS NOT NULL")
+    abstract suspend fun likedSongsOnce(): List<SongEntity>
+
+    @Query("SELECT * FROM playlists")
+    abstract suspend fun playlistsOnce(): List<PlaylistEntity>
+
     // ---- sözler
     @Query("SELECT * FROM lyrics WHERE songId = :id")
     abstract suspend fun lyrics(id: String): LyricsEntity?
@@ -262,8 +298,9 @@ abstract class AdtDao {
     entities = [
         SongEntity::class, PlaylistEntity::class, PlaylistSongEntity::class,
         HistoryEntity::class, SearchHistoryEntity::class, LyricsEntity::class,
+        FollowedArtistEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class AdtDatabase : RoomDatabase() {
@@ -272,7 +309,17 @@ abstract class AdtDatabase : RoomDatabase() {
     companion object {
         fun create(context: Context): AdtDatabase =
             Room.databaseBuilder(context, AdtDatabase::class.java, "adt_music.db")
+                .addMigrations(MIGRATION_1_2)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
+
+        /** 1.1: takip edilen sanatçılar tablosu. Mevcut veriler korunur. */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `followed_artists` (`name` TEXT NOT NULL, `thumbnail` TEXT, `followedAt` INTEGER NOT NULL, PRIMARY KEY(`name`))"
+                )
+            }
+        }
     }
 }

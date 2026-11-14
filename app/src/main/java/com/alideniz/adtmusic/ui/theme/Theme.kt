@@ -1,14 +1,17 @@
 package com.alideniz.adtmusic.ui.theme
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
@@ -54,9 +57,9 @@ fun lightAdtColors(accent: Color = AdtOrange) = AdtColors(
     isDark = false,
 )
 
-fun darkAdtColors(accent: Color = AdtOrange) = AdtColors(
-    paper = Color(0xFF0F0F0F),
-    surface = Color(0xFF1B1B1B),
+fun darkAdtColors(accent: Color = AdtOrange, pureBlack: Boolean = false) = AdtColors(
+    paper = if (pureBlack) Color.Black else Color(0xFF0F0F0F),
+    surface = if (pureBlack) Color(0xFF121212) else Color(0xFF1B1B1B),
     ink = Color(0xFFF4F2EE),
     muted = Color(0xFFA6A39C),
     faint = Color(0xFF6E6C67),
@@ -85,29 +88,41 @@ data class AdtType(
     val label: TextStyle,
 )
 
-val adtType = AdtType(
-    hero = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.ExtraBold, fontSize = 52.sp, lineHeight = 48.sp, letterSpacing = (-0.035).em),
-    display = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.ExtraBold, fontSize = 38.sp, lineHeight = 38.sp, letterSpacing = (-0.03).em),
-    headline = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 28.sp, letterSpacing = (-0.02).em),
-    title = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Bold, fontSize = 17.sp, lineHeight = 21.sp, letterSpacing = (-0.01).em),
-    body = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 20.sp),
-    bodyStrong = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Bold, fontSize = 15.sp, lineHeight = 20.sp),
-    caption = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 17.sp),
-    label = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 15.sp, letterSpacing = 0.1.em),
+fun adtType(scale: Float = 1f): AdtType = AdtType(
+    hero = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.ExtraBold, fontSize = 52.sp * scale, lineHeight = 48.sp * scale, letterSpacing = (-0.035).em),
+    display = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.ExtraBold, fontSize = 38.sp * scale, lineHeight = 38.sp * scale, letterSpacing = (-0.03).em),
+    headline = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp * scale, lineHeight = 28.sp * scale, letterSpacing = (-0.02).em),
+    title = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Bold, fontSize = 17.sp * scale, lineHeight = 21.sp * scale, letterSpacing = (-0.01).em),
+    body = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Normal, fontSize = 15.sp * scale, lineHeight = 20.sp * scale),
+    bodyStrong = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Bold, fontSize = 15.sp * scale, lineHeight = 20.sp * scale),
+    caption = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Medium, fontSize = 13.sp * scale, lineHeight = 17.sp * scale),
+    label = TextStyle(fontFamily = Archivo, fontWeight = FontWeight.Bold, fontSize = 12.sp * scale, lineHeight = 15.sp * scale, letterSpacing = 0.1.em),
 )
 
 val LocalAdtColors = staticCompositionLocalOf { lightAdtColors() }
-val LocalAdtType = staticCompositionLocalOf { adtType }
+val LocalAdtType = staticCompositionLocalOf { adtType() }
+val LocalAdtShape = staticCompositionLocalOf<Shape> { RectangleShape }
+val LocalAdtCorner = staticCompositionLocalOf { 0.dp }
+/** Animasyonlar azaltıldıysa true. */
+val LocalReduceMotion = staticCompositionLocalOf { false }
 
 object AdtTheme {
     val colors: AdtColors @Composable get() = LocalAdtColors.current
     val type: AdtType @Composable get() = LocalAdtType.current
+    /** Kapak, düğme ve kutuların köşe şekli (Keskin / Yumuşak / Yuvarlak). */
+    val shape: Shape @Composable get() = LocalAdtShape.current
+    val corner: Dp @Composable get() = LocalAdtCorner.current
+    val reduceMotion: Boolean @Composable get() = LocalReduceMotion.current
 }
 
 @Composable
 fun AdtTheme(
     themeMode: String,
     accent: Color,
+    pureBlack: Boolean = false,
+    corner: Dp = 0.dp,
+    fontScale: Float = 1f,
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val dark = when (themeMode) {
@@ -115,12 +130,22 @@ fun AdtTheme(
         "light" -> false
         else -> isSystemInDarkTheme()
     }
-    val animatedAccent by animateColorAsState(accent, tween(700), label = "accent")
-    val colors = if (dark) darkAdtColors(animatedAccent) else lightAdtColors(animatedAccent)
-    val selection = TextSelectionColors(handleColor = colors.accent, backgroundColor = colors.accent.copy(alpha = 0.3f))
+    // Not: vurgu rengi bilerek animasyonsuz değişir; tüm arayüzün her karede
+    // yeniden çizilmesini önler (akıcılık için).
+    val colors = remember(dark, accent, pureBlack) {
+        if (dark) darkAdtColors(accent, pureBlack) else lightAdtColors(accent)
+    }
+    val type = remember(fontScale) { adtType(fontScale) }
+    val shape = remember(corner) { if (corner <= 0.dp) RectangleShape else RoundedCornerShape(corner) }
+    val selection = remember(colors) {
+        TextSelectionColors(handleColor = colors.accent, backgroundColor = colors.accent.copy(alpha = 0.3f))
+    }
     CompositionLocalProvider(
         LocalAdtColors provides colors,
-        LocalAdtType provides adtType,
+        LocalAdtType provides type,
+        LocalAdtShape provides shape,
+        LocalAdtCorner provides corner,
+        LocalReduceMotion provides reduceMotion,
         LocalTextSelectionColors provides selection,
         content = content,
     )

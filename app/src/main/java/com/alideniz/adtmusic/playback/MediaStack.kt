@@ -11,6 +11,7 @@ import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.CacheKeyFactory
+import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -25,6 +26,10 @@ import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Oynatıcının veri katmanı:
@@ -34,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Şarkı indirildiyse ya da yakın zamanda dinlendiyse internet hiç kullanılmaz.
  */
 class MediaStack(
-    context: Context,
+    private val context: Context,
     private val settings: Settings,
     private val youtube: YouTubeRepository,
     baseClient: OkHttpClient,
@@ -92,7 +97,7 @@ class MediaStack(
                 cached
             } else {
                 try {
-                    youtube.resolveBlocking(id, settings.audioQuality.value)
+                    youtube.resolveBlocking(id, effectiveQuality())
                 } catch (e: Exception) {
                     throw IOException("Akış çözülemedi: ${e.message}", e)
                 }.also { resolved[id] = it }
@@ -102,11 +107,63 @@ class MediaStack(
     }
 
     /** Ağdan okuyan, adt:// adreslerini gerçek akışa çeviren kaynak. */
+    private val okHttpFactory = OkHttpDataSource.Factory(mediaClient)
+
     val upstreamFactory: DataSource.Factory =
         ResolvingDataSource.Factory(
-            OkHttpDataSource.Factory(mediaClient),
+            DataSource.Factory { ChunkedDataSource(okHttpFactory.createDataSource()) },
             resolver,
         )
+
+    private val prefetchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val prefetching = ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * Sıradaki şarkının akış adresini çözer ve ilk [bytes] baytını önbelleğe alır.
+     * Böylece şarkıya geçildiğinde "yükleniyor" beklemesi olmaz.
+     */
+    fun prefetch(id: String, bytes: Long = PREFETCH_BYTES) {
+        if (!prefetching.add(id)) return
+        prefetchScope.launch {
+            try {
+                if (downloadCache.getCachedBytes(id, 0, bytes) >= bytes) return@launch
+                if (playerCache.getCachedBytes(id, 0, bytes) >= bytes) return@launch
+                val ds = CacheDataSource.Factory()
+                    .setCache(playerCache)
+                    .setUpstreamDataSourceFactory(upstreamFactory)
+                    .setCacheKeyFactory(cacheKeyFactory)
+                    .createDataSource()
+                val spec = DataSpec.Builder()
+                    .setUri(uriFor(id))
+                    .setKey(id)
+                    .setPosition(0)
+                    .setLength(bytes)
+                    .build()
+                CacheWriter(ds, spec, null, null).cache()
+            } catch (_: Exception) {
+            } finally {
+                prefetching.remove(id)
+            }
+        }
+    }
+
+    /** Mobil veride tasarruf açıksa düşük kalite seçilir. */
+    fun effectiveQuality(): String {
+        if (settings.mobileDataSaver.value) {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            if (cm?.isActiveNetworkMetered == true) return "low"
+        }
+        return settings.audioQuality.value
+    }
+
+    /** Yalnızca akış adresini önceden çözer (veri indirmez). */
+    fun warmUrl(id: String) {
+        prefetchScope.launch {
+            runCatching {
+                if (resolved[id] == null) resolved[id] = youtube.resolveBlocking(id, effectiveQuality())
+            }
+        }
+    }
 
     /** Oynatıcının kullandığı kaynak zinciri. */
     fun playerDataSourceFactory(): DataSource.Factory {
@@ -145,6 +202,7 @@ class MediaStack(
 
     companion object {
         const val SCHEME = "adt"
+        const val PREFETCH_BYTES = 1_200_000L
         fun uriFor(id: String): Uri = Uri.parse("$SCHEME://$id")
     }
 }

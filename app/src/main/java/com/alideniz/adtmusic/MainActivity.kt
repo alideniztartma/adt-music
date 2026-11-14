@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
+import android.app.Activity
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -15,6 +17,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.ui.draw.clip
+import com.alideniz.adtmusic.ui.screens.FollowingScreen
+import com.alideniz.adtmusic.ui.screens.WrappedScreen
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -47,6 +61,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -105,8 +120,15 @@ class MainActivity : ComponentActivity() {
             val settings = container.settings
             val themeMode by settings.theme.flow.collectAsState()
             val dynamic by settings.dynamicColor.flow.collectAsState()
+            val accentInt by settings.accentColor.flow.collectAsState()
+            val pureBlack by settings.pureBlack.flow.collectAsState()
+            val cornerStyle by settings.cornerStyle.flow.collectAsState()
+            val fontScale by settings.fontScale.flow.collectAsState()
+            val reduceMotion by settings.reduceMotion.flow.collectAsState()
+            val highRefresh by settings.highRefreshRate.flow.collectAsState()
             val playerState by container.player.state.collectAsState()
-            val coverAccent = rememberCoverAccent(playerState.current?.thumbnail)
+            val fixedAccent = Color(accentInt)
+            val coverAccent = rememberCoverAccent(playerState.current?.thumbnail, fallback = fixedAccent)
             val dark = when (themeMode) {
                 "dark" -> true
                 "light" -> false
@@ -119,8 +141,20 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose { }
             }
+            LaunchedEffect(highRefresh) { applyRefreshRate(highRefresh) }
 
-            AdtTheme(themeMode = themeMode, accent = if (dynamic) coverAccent else AdtOrange) {
+            AdtTheme(
+                themeMode = themeMode,
+                accent = if (dynamic) coverAccent else fixedAccent,
+                pureBlack = pureBlack,
+                corner = when (cornerStyle) {
+                    "soft" -> 10.dp
+                    "round" -> 22.dp
+                    else -> 0.dp
+                },
+                fontScale = fontScale,
+                reduceMotion = reduceMotion,
+            ) {
                 AdtRoot(
                     pendingLink = pendingLink,
                     onLinkHandled = { pendingLink = null },
@@ -128,6 +162,27 @@ class MainActivity : ComponentActivity() {
                     onOpenPlayerHandled = { pendingOpenPlayer = false },
                 )
             }
+        }
+    }
+
+    /** Ekranın desteklediği en yüksek yenileme hızını (90/120/144 Hz) ister. */
+    private fun applyRefreshRate(high: Boolean) {
+        runCatching {
+            @Suppress("DEPRECATION")
+            val d = if (Build.VERSION.SDK_INT >= 30) display else windowManager.defaultDisplay
+            d ?: return
+            val current = d.mode
+            val modeId = if (high) {
+                d.supportedModes
+                    .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+                    .maxByOrNull { it.refreshRate }?.modeId ?: 0
+            } else 0
+            val attrs = window.attributes
+            attrs.preferredDisplayModeId = modeId
+            if (high) {
+                attrs.preferredRefreshRate = d.supportedModes.maxOf { it.refreshRate }
+            }
+            window.attributes = attrs
         }
     }
 
@@ -170,6 +225,7 @@ private fun AdtRoot(
     val context = LocalContext.current
     val app = context.container
     val c = AdtTheme.colors
+    val reduce = AdtTheme.reduceMotion
     val nav = rememberNavController()
     val ui = remember(nav) {
         AppUi(
@@ -181,6 +237,8 @@ private fun AdtRoot(
     val hasSong = playerState.current != null
     val backStack by nav.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+    val keepOnLyrics by app.settings.keepScreenOnLyrics.flow.collectAsState()
+    val haptics by app.settings.haptics.flow.collectAsState()
 
     // Bildirim izni (Android 13+): çalma kontrolleri bildirimde görünsün.
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -190,6 +248,17 @@ private fun AdtRoot(
         ) {
             permission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        val start = app.settings.startTab.value
+        if (start != Routes.HOME && TABS.any { it.route == start }) navigateTo(nav, start)
+    }
+
+    // Sözler açıkken ekran kapanmasın
+    val keepScreenOn = keepOnLyrics && ui.playerExpanded && ui.lyricsMode && playerState.isPlaying
+    DisposableEffect(keepScreenOn) {
+        val window = (context as? Activity)?.window
+        if (keepScreenOn) window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose { }
     }
 
     // Dışarıdan gelen YouTube bağlantıları
@@ -218,15 +287,33 @@ private fun AdtRoot(
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottomInset = navBarInset + 61.dp + if (hasSong) 66.dp else 0.dp
 
-    CompositionLocalProvider(LocalAppUi provides ui, LocalBottomInset provides bottomInset) {
+    val emphasized = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+    CompositionLocalProvider(
+        LocalAppUi provides ui,
+        LocalBottomInset provides bottomInset,
+        com.alideniz.adtmusic.ui.components.LocalHapticsEnabled provides haptics,
+    ) {
         Box(Modifier.fillMaxSize().background(c.paper)) {
             NavHost(
                 navController = nav,
                 startDestination = Routes.HOME,
-                enterTransition = { fadeIn(tween(200)) },
-                exitTransition = { fadeOut(tween(140)) },
-                popEnterTransition = { fadeIn(tween(200)) },
-                popExitTransition = { fadeOut(tween(140)) },
+                enterTransition = {
+                    if (reduce) fadeIn(tween(150))
+                    else slideInHorizontally(tween(380, easing = emphasized)) { it / 5 } + fadeIn(tween(260))
+                },
+                exitTransition = {
+                    if (reduce) fadeOut(tween(120))
+                    else slideOutHorizontally(tween(380, easing = emphasized)) { -it / 12 } + fadeOut(tween(200))
+                },
+                popEnterTransition = {
+                    if (reduce) fadeIn(tween(150))
+                    else slideInHorizontally(tween(380, easing = emphasized)) { -it / 12 } + fadeIn(tween(260))
+                },
+                popExitTransition = {
+                    if (reduce) fadeOut(tween(120))
+                    else slideOutHorizontally(tween(320, easing = emphasized)) { it / 5 } + fadeOut(tween(200))
+                },
                 modifier = Modifier.fillMaxSize(),
             ) {
                 composable(Routes.HOME) { HomeScreen() }
@@ -238,6 +325,8 @@ private fun AdtRoot(
                 composable(Routes.STATS) { StatsScreen() }
                 composable(Routes.SETTINGS) { SettingsScreen() }
                 composable(Routes.EQUALIZER) { EqualizerScreen() }
+                composable(Routes.WRAPPED) { WrappedScreen() }
+                composable(Routes.FOLLOWING) { FollowingScreen() }
                 composable(
                     Routes.COLLECTION,
                     arguments = listOf(
@@ -286,9 +375,15 @@ private fun AdtRoot(
             // ---- alt bölüm: mini oynatıcı + sekmeler
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
                 MessageHost()
-                if (hasSong) {
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(c.ink))
-                    MiniPlayer()
+                AnimatedVisibility(
+                    visible = hasSong,
+                    enter = expandVertically(spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                    exit = shrinkVertically(tween(220)) + fadeOut(tween(160)),
+                ) {
+                    Column {
+                        Box(Modifier.fillMaxWidth().height(1.dp).background(c.ink))
+                        MiniPlayer()
+                    }
                 }
                 BottomTabs(currentRoute) { route -> navigateTo(nav, route) }
             }
@@ -296,8 +391,10 @@ private fun AdtRoot(
             // ---- tam ekran oynatıcı
             AnimatedVisibility(
                 visible = ui.playerExpanded && hasSong,
-                enter = slideInVertically(tween(320)) { it } + fadeIn(tween(200)),
-                exit = slideOutVertically(tween(260)) { it } + fadeOut(tween(200)),
+                enter = if (reduce) fadeIn(tween(150)) else
+                    slideInVertically(spring(dampingRatio = 0.86f, stiffness = 420f)) { it } + fadeIn(tween(180)),
+                exit = if (reduce) fadeOut(tween(120)) else
+                    slideOutVertically(spring(dampingRatio = 1f, stiffness = 520f)) { it } + fadeOut(tween(220)),
             ) {
                 PlayerScreen()
             }
@@ -309,26 +406,42 @@ private fun AdtRoot(
     }
 }
 
+/**
+ * Alt sekmeler her ekrandan çalışır: sekmeye dokununca o sekmenin
+ * köküne dönülür (ayarlar, albüm, sanatçı vb. sayfalar kapanır).
+ */
 private fun navigateTo(nav: NavHostController, route: String) {
     if (TABS.any { it.route == route }) {
+        val startId = nav.graph.findStartDestination().id
         nav.navigate(route) {
-            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+            popUpTo(startId) { inclusive = false }
             launchSingleTop = true
-            restoreState = true
         }
     } else {
         nav.navigate(route) { launchSingleTop = true }
     }
 }
 
+/** Bir sayfanın hangi sekmeye ait olduğu (alt çubukta işaretlemek için). */
+private fun tabOf(route: String?): String? = when (route) {
+    null -> null
+    Routes.HOME, Routes.SEARCH, Routes.LIBRARY -> route
+    Routes.LIKED, Routes.DOWNLOADS, Routes.HISTORY, Routes.STATS, Routes.PLAYLIST,
+    Routes.FOLLOWING, Routes.WRAPPED, Routes.EQUALIZER -> Routes.LIBRARY
+    else -> null
+}
+
 @Composable
 private fun BottomTabs(currentRoute: String?, onSelect: (String) -> Unit) {
     val c = AdtTheme.colors
+    val activeTab = tabOf(currentRoute)
     Column(Modifier.fillMaxWidth().background(c.paper)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
         Row(Modifier.fillMaxWidth().height(60.dp)) {
             TABS.forEach { tab ->
-                val selected = currentRoute == tab.route
+                val selected = activeTab == tab.route
+                val barWidth by animateDpAsState(if (selected) 28.dp else 0.dp, spring(dampingRatio = 0.6f), label = "tabBar")
+                val tint by animateColorAsState(if (selected) c.ink else c.faint, tween(200), label = "tabTint")
                 Column(
                     Modifier
                         .weight(1f)
@@ -336,16 +449,11 @@ private fun BottomTabs(currentRoute: String?, onSelect: (String) -> Unit) {
                         .press(label = tab.label) { onSelect(tab.route) },
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(
-                        Modifier
-                            .width(28.dp)
-                            .height(3.dp)
-                            .background(if (selected) c.accent else androidx.compose.ui.graphics.Color.Transparent)
-                    )
+                    Box(Modifier.width(barWidth).height(3.dp).background(c.accent))
                     Spacer(Modifier.height(9.dp))
-                    AdtIcon(tab.icon, null, tint = if (selected) c.ink else c.faint, size = 22.dp)
+                    AdtIcon(tab.icon, null, tint = tint, size = 22.dp)
                     Spacer(Modifier.height(4.dp))
-                    Txt(tab.label.uppercase(), AdtTheme.type.label.copy(fontSize = AdtTheme.type.label.fontSize * 0.85f), color = if (selected) c.ink else c.faint)
+                    Txt(tab.label.uppercase(), AdtTheme.type.label.copy(fontSize = AdtTheme.type.label.fontSize * 0.85f), color = tint)
                 }
             }
         }
@@ -372,8 +480,8 @@ private fun MessageHost() {
     }
     AnimatedVisibility(
         visible = message != null,
-        enter = slideInVertically { it } + fadeIn(),
-        exit = fadeOut(),
+        enter = slideInVertically(spring(dampingRatio = 0.7f, stiffness = 500f)) { it } + fadeIn(),
+        exit = slideOutVertically(tween(200)) { it / 2 } + fadeOut(tween(200)),
     ) {
         var last by remember { mutableStateOf("") }
         message?.let { last = it }
@@ -381,8 +489,8 @@ private fun MessageHost() {
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 10.dp)
+                .clip(AdtTheme.shape)
                 .background(c.ink)
-                .border(1.dp, c.ink)
                 .press(label = "Kapat") { message = null }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {

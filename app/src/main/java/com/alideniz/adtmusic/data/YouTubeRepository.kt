@@ -112,7 +112,17 @@ class YouTubeRepository {
         songs.filter { it.id != seedId }.distinctBy { it.id }
     }
 
-    suspend fun home(seed: Song?): HomeFeed = coroutineScope {
+    suspend fun home(seed: Song?, followed: List<String> = emptyList()): HomeFeed = coroutineScope {
+        val followedJob = async {
+            followed.take(5).map { name ->
+                async {
+                    val lower = name.lowercase()
+                    runCatching { searchSongs(name, 8) }.getOrDefault(emptyList())
+                        .filter { it.artist.lowercase().contains(lower) }
+                        .take(4)
+                }
+            }.flatMap { it.await() }.shuffled().distinctBy { it.id }
+        }
         val trending = async { runCatching { trending() }.getOrDefault(emptyList()) }
         val featured = async { searchCollections("Türkçe pop hitler", SearchFilter.PLAYLISTS).take(10) }
         val albums = async { searchCollections("yeni albüm 2026", SearchFilter.ALBUMS).take(10) }
@@ -125,6 +135,7 @@ class YouTubeRepository {
             trending = trend.take(30),
             featured = featured.await(),
             newReleases = albums.await(),
+            followedSongs = followedJob.await(),
         )
     }
 
@@ -173,11 +184,7 @@ class YouTubeRepository {
     // ------------------------------------------------------------ akışlar
 
     suspend fun streamInfo(id: String): StreamInfo = withContext(Dispatchers.IO) {
-        val cached = streamCache[id]
-        if (cached != null && cached.second > System.currentTimeMillis()) return@withContext cached.first
-        val info = StreamInfo.getInfo(yt, "https://www.youtube.com/watch?v=$id")
-        streamCache[id] = info to (System.currentTimeMillis() + 60 * 60 * 1000L)
-        info
+        streamInfoBlocking(id)
     }
 
     suspend fun song(id: String): Song = withContext(Dispatchers.IO) {
@@ -197,14 +204,7 @@ class YouTubeRepository {
      * çağrılır, bu yüzden engelleyici (blocking) çalışır.
      */
     fun resolveBlocking(id: String, quality: String): ResolvedStream {
-        val cached = streamCache[id]
-        val info = if (cached != null && cached.second > System.currentTimeMillis()) {
-            cached.first
-        } else {
-            StreamInfo.getInfo(yt, "https://www.youtube.com/watch?v=$id").also {
-                streamCache[id] = it to (System.currentTimeMillis() + 60 * 60 * 1000L)
-            }
-        }
+        val info = streamInfoBlocking(id)
         val candidates = info.audioStreams
             .filter { it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP && it.isUrl }
             .ifEmpty { info.audioStreams.filter { it.isUrl } }
@@ -218,6 +218,20 @@ class YouTubeRepository {
             bitrate = stream.averageBitrate,
             expiresAtMs = (expire?.times(1000)) ?: (System.currentTimeMillis() + 3 * 3600 * 1000L),
         )
+    }
+
+    private val locks = ConcurrentHashMap<String, Any>()
+
+    /** Aynı şarkı için eşzamanlı istekleri tek bir istekte birleştirir. */
+    fun streamInfoBlocking(id: String): StreamInfo {
+        streamCache[id]?.let { if (it.second > System.currentTimeMillis()) return it.first }
+        val lock = locks.getOrPut(id) { Any() }
+        synchronized(lock) {
+            streamCache[id]?.let { if (it.second > System.currentTimeMillis()) return it.first }
+            val info = StreamInfo.getInfo(yt, "https://www.youtube.com/watch?v=$id")
+            streamCache[id] = info to (System.currentTimeMillis() + 60 * 60 * 1000L)
+            return info
+        }
     }
 
     fun invalidateStream(id: String) {

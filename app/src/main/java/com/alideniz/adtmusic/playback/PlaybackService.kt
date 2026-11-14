@@ -14,6 +14,7 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.Util
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CommandButton
@@ -74,7 +75,13 @@ class PlaybackService : MediaLibraryService() {
                     .build(),
                 /* handleAudioFocus = */ true,
             )
-            .setHandleAudioBecomingNoisy(true)
+            .setHandleAudioBecomingNoisy(c.settings.pauseOnDisconnect.value)
+            .setLoadControl(
+                DefaultLoadControl.Builder()
+                    // Daha az veriyle daha erken başla: 0,8 sn ses tamponlanınca çal.
+                    .setBufferDurationsMs(20_000, 60_000, 800, 1_500)
+                    .build()
+            )
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setSeekBackIncrementMs(10_000)
             .setSeekForwardIncrementMs(10_000)
@@ -160,6 +167,7 @@ class PlaybackService : MediaLibraryService() {
             updateNotificationButtons()
             saveQueue()
             maybeExtendWithRadio()
+            preloadUpcoming()
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -242,6 +250,20 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
             radioLoading = false
+        }
+    }
+
+    /** Sıradaki iki şarkının adresini çözer ve başını önbelleğe alır. */
+    private fun preloadUpcoming() {
+        if (!c.settings.preloadNext.value) return
+        val timeline = player.currentTimeline
+        if (timeline.isEmpty) return
+        var index = player.currentMediaItemIndex
+        repeat(2) { step ->
+            index = timeline.getNextWindowIndex(index, player.repeatMode.let { if (it == Player.REPEAT_MODE_ONE) Player.REPEAT_MODE_OFF else it }, player.shuffleModeEnabled)
+            if (index == C.INDEX_UNSET) return
+            val id = player.getMediaItemAt(index).mediaId
+            if (step == 0) c.media.prefetch(id) else c.media.warmUrl(id)
         }
     }
 

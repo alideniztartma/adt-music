@@ -2,6 +2,7 @@ package com.alideniz.adtmusic.playback
 
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.media.audiofx.Virtualizer
 import androidx.media3.common.Player
 import com.alideniz.adtmusic.data.Settings
@@ -24,6 +25,7 @@ class AudioEffects(private val settings: Settings) {
     private var equalizer: Equalizer? = null
     private var bass: BassBoost? = null
     private var virtualizer: Virtualizer? = null
+    private var loudness: LoudnessEnhancer? = null
 
     private val _bands = MutableStateFlow<List<EqBand>>(emptyList())
     val bands: StateFlow<List<EqBand>> = _bands.asStateFlow()
@@ -48,6 +50,7 @@ class AudioEffects(private val settings: Settings) {
         }
         runCatching { bass = BassBoost(0, audioSessionId) }
         runCatching { virtualizer = Virtualizer(0, audioSessionId) }
+        runCatching { loudness = LoudnessEnhancer(audioSessionId) }
         val saved = settings.eqBands.value.split(",").mapNotNull { it.trim().toIntOrNull() }
         _levels.value = if (saved.size == _bands.value.size) saved else List(_bands.value.size) { 0 }
         apply()
@@ -57,7 +60,8 @@ class AudioEffects(private val settings: Settings) {
         runCatching { equalizer?.release() }
         runCatching { bass?.release() }
         runCatching { virtualizer?.release() }
-        equalizer = null; bass = null; virtualizer = null
+        runCatching { loudness?.release() }
+        equalizer = null; bass = null; virtualizer = null; loudness = null
     }
 
     private fun apply() {
@@ -74,6 +78,13 @@ class AudioEffects(private val settings: Settings) {
             runCatching {
                 b.setEnabled(enabled && settings.bassBoost.value > 0)
                 if (b.strengthSupported) b.setStrength(settings.bassBoost.value.toShort())
+            }
+        }
+        loudness?.let { l ->
+            runCatching {
+                val boost = settings.volumeBoost.value
+                l.setTargetGain(boost)
+                l.setEnabled(boost > 0)
             }
         }
         virtualizer?.let { v ->
@@ -101,6 +112,12 @@ class AudioEffects(private val settings: Settings) {
 
     fun setBass(strength: Int) {
         settings.bassBoost.set(strength.coerceIn(0, 1000))
+        apply()
+    }
+
+    /** Ses yükseltme (EQ kapalı olsa da çalışır), milibel 0..1000. */
+    fun setVolumeBoost(mb: Int) {
+        settings.volumeBoost.set(mb.coerceIn(0, 1000))
         apply()
     }
 
