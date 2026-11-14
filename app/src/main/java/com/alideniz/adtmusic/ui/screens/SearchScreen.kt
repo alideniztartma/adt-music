@@ -126,7 +126,7 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         runSearch()
     }
 
-    fun setFilter(f: SearchFilter) {
+    fun chooseFilter(f: SearchFilter) {
         if (f == filter) return
         filter = f
         if (submitted.isNotBlank()) runSearch()
@@ -271,7 +271,7 @@ fun SearchScreen() {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(SearchFilter.entries) { f ->
-                            Chip(f.label, f == vm.filter, { vm.setFilter(f) })
+                            Chip(f.label, f == vm.filter, { vm.chooseFilter(f) })
                         }
                     }
                     vm.correction?.let { fix ->
