@@ -232,7 +232,7 @@ class YouTubeRepository {
             mime.contains("mp4") || mime.contains("webm")
         }.ifEmpty { list }
         // Dublajlı/yan ses kanalları yerine orijinal sesi tercih et.
-        val original = playable.filter { it.audioTrackType == null || it.audioTrackType.name == "ORIGINAL" }
+        val original = playable.filter { t -> t.audioTrackType?.name.let { it == null || it == "ORIGINAL" } }
             .ifEmpty { playable }
         return when (quality) {
             "low" -> original.minByOrNull { it.averageBitrate.takeIf { b -> b > 0 } ?: Int.MAX_VALUE }
