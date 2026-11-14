@@ -25,3 +25,6 @@
 
 # Room
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
+
+# WorkManager işçileri yansıma ile oluşturulur
+-keep class * extends androidx.work.ListenableWorker { <init>(android.content.Context, androidx.work.WorkerParameters); }

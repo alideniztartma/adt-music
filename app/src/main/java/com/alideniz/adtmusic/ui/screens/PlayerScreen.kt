@@ -45,6 +45,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -217,7 +223,7 @@ fun PlayerScreen() {
                 } else {
                     Column(Modifier.fillMaxSize()) {
                         SwipeCover(song, state, Modifier.fillMaxWidth().weight(1f, fill = false))
-                        Spacer(Modifier.height(24.dp))
+                        PlayerVisualizer(state.isPlaying)
                         AnimatedContent(
                             targetState = song,
                             transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
@@ -378,12 +384,43 @@ private fun SwipeCover(song: Song, state: PlayerUiState, modifier: Modifier = Mo
         }
     }
 
+    // Kapak animasyonu: nefes (yavaş büyüyüp küçülme) ya da ritme göre atım
+    val anim by app.settings.coverAnimation.flow.collectAsState()
+    val mode = if (AdtTheme.reduceMotion) "off" else anim
+    val amount by animateFloatAsState(
+        if (state.isPlaying && mode != "off") 1f else 0f, tween(600), label = "coverAmt",
+    )
+    val beatMode = mode == "beat" && app.spectrum.hasPermission()
+    if (beatMode) {
+        DisposableEffect(Unit) {
+            app.spectrum.acquire()
+            onDispose { app.spectrum.release() }
+        }
+    }
+    val beatActive by app.spectrum.active.collectAsState()
+    val level = app.spectrum.level.collectAsState()
+    val breath = if (mode != "off") {
+        rememberInfiniteTransition(label = "breath").animateFloat(
+            0f, 1f,
+            infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "breathV",
+        )
+    } else null
+    val useBeat = beatMode && beatActive
+
     BoxWithConstraints(modifier, contentAlignment = Alignment.TopStart) {
         val side = minOf(maxWidth, maxHeight)
         Box(
             Modifier
                 .size(side)
                 .graphicsLayer {
+                    val pulse = when {
+                        amount == 0f -> 0f
+                        useBeat -> level.value
+                        else -> breath?.value ?: 0f
+                    }
+                    val sc = 1f - 0.035f * amount + 0.035f * amount * pulse
+                    scaleX = sc; scaleY = sc
                     translationX = offset.value
                     alpha = 1f - (abs(offset.value) / 900f).coerceIn(0f, 0.6f)
                     rotationZ = offset.value / 90f
@@ -433,10 +470,64 @@ private fun SwipeCover(song: Song, state: PlayerUiState, modifier: Modifier = Mo
     }
 }
 
+/** Kapağın altında çalan müziğe göre hareket eden çubuklar ya da dalga. */
+@Composable
+private fun PlayerVisualizer(playing: Boolean) {
+    val app = LocalContext.current.container
+    val style by app.settings.visualizerStyle.flow.collectAsState()
+    val c = AdtTheme.colors
+    if (style == "off" || !app.spectrum.hasPermission()) {
+        Spacer(Modifier.height(24.dp))
+        return
+    }
+    DisposableEffect(Unit) {
+        app.spectrum.acquire()
+        onDispose { app.spectrum.release() }
+    }
+    val bands = app.spectrum.bands.collectAsState()
+    val shown by animateFloatAsState(if (playing) 1f else 0.15f, tween(400), label = "vizAmt")
+    val accent = c.accent
+    val faint = c.line
+    androidx.compose.foundation.Canvas(
+        Modifier.fillMaxWidth().padding(vertical = 10.dp).height(36.dp)
+    ) {
+        val b = bands.value
+        val n = b.size
+        if (n == 0) return@Canvas
+        val h = size.height
+        if (style == "wave") {
+            val step = size.width / (n - 1)
+            val path = androidx.compose.ui.graphics.Path()
+            val fill = androidx.compose.ui.graphics.Path()
+            fun y(i: Int) = h - (h * 0.08f + h * 0.92f * b[i] * shown)
+            path.moveTo(0f, y(0)); fill.moveTo(0f, h); fill.lineTo(0f, y(0))
+            for (i in 1 until n) {
+                val x0 = (i - 1) * step; val x1 = i * step
+                val cx = (x0 + x1) / 2f
+                path.cubicTo(cx, y(i - 1), cx, y(i), x1, y(i))
+                fill.cubicTo(cx, y(i - 1), cx, y(i), x1, y(i))
+            }
+            fill.lineTo(size.width, h); fill.close()
+            drawPath(fill, accent.copy(alpha = 0.16f))
+            drawPath(path, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5.dp.toPx()))
+        } else {
+            val gap = 4.dp.toPx()
+            val w = (size.width - gap * (n - 1)) / n
+            for (i in 0 until n) {
+                val bh = (h * b[i] * shown).coerceAtLeast(2.dp.toPx())
+                val x = i * (w + gap)
+                drawRect(faint, topLeft = androidx.compose.ui.geometry.Offset(x, h - 2.dp.toPx()), size = androidx.compose.ui.geometry.Size(w, 2.dp.toPx()))
+                drawRect(accent, topLeft = androidx.compose.ui.geometry.Offset(x, h - bh), size = androidx.compose.ui.geometry.Size(w, bh))
+            }
+        }
+    }
+}
+
 /** Senkron sözler: çalan satır kayan bir dolguyla vurgulanır, satıra dokununca oraya atlar. */
 @Composable
 fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
     val app = LocalContext.current.container
+    val ui = LocalAppUi.current
     val c = AdtTheme.colors
     val textSize by app.settings.lyricsTextSize.flow.collectAsState()
     var reload by remember { mutableIntStateOf(0) }
@@ -465,11 +556,15 @@ fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
                             Txt(
                                 line.text.ifBlank { " " },
                                 AdtTheme.type.title.copy(fontSize = (textSize * 0.75f).sp, lineHeight = (textSize * 1.05f).sp),
+                                modifier = if (line.text.isBlank()) Modifier else Modifier.press(
+                                    label = "Söz kartı",
+                                    onLongClick = { ui.show(SheetSpec.LyricCard(song, line.text)) },
+                                ) {},
                             )
                         }
                         Spacer(Modifier.height(40.dp))
                     }
-                    else -> SyncedLyrics(data, progress, textSize)
+                    else -> SyncedLyrics(song, data, progress, textSize)
                 }
             }
         }
@@ -478,8 +573,9 @@ fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
 
 @OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
 @Composable
-private fun SyncedLyrics(lyrics: Lyrics, progress: Progress, textSize: Int) {
+private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSize: Int) {
     val app = LocalContext.current.container
+    val ui = LocalAppUi.current
     val c = AdtTheme.colors
     val animation by app.settings.lyricsAnimation.flow.collectAsState()
     val align by app.settings.lyricsAlign.flow.collectAsState()
@@ -541,7 +637,10 @@ private fun SyncedLyrics(lyrics: Lyrics, progress: Progress, textSize: Int) {
 
             val modifier = Modifier
                 .fillMaxWidth()
-                .press(label = "Buraya atla") { app.player.seekTo(line.timeMs) }
+                .press(
+                    label = "Buraya atla",
+                    onLongClick = if (line.text.isBlank()) null else ({ ui.show(SheetSpec.LyricCard(song, line.text)) }),
+                ) { app.player.seekTo(line.timeMs) }
                 .padding(vertical = 10.dp)
                 .graphicsLayer {
                     scaleX = scale; scaleY = scale; this.alpha = alpha

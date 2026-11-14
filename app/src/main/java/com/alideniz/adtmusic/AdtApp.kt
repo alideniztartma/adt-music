@@ -45,6 +45,7 @@ class AdtApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        runCatching { com.alideniz.adtmusic.playback.Watcher.schedule(this) }
     }
 
     override fun newImageLoader(): ImageLoader = ImageLoader.Builder(this)
@@ -96,12 +97,28 @@ class AppContainer(val context: Context) {
     val media = MediaStack(context, settings, youtube, httpClient)
     val downloads = DownloadTracker(context, media, settings, dao, appScope)
     val effects = AudioEffects(settings)
+    val spectrum = com.alideniz.adtmusic.playback.Spectrum(context)
+    /** Başka bir ekrandan aramaya gönderilen sorgu (ör. etiketler). */
+    val pendingSearch = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     val sleepTimer = SleepTimer(appScope)
     val player = PlayerConnection(context, appScope)
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     /** Kullanıcıya gösterilecek kısa bildirimler (hata, "listeye eklendi" vb.). */
     val messages: SharedFlow<String> = _messages.asSharedFlow()
+
+    /** Yeni kazanılan rozetleri bulur ve kutlar. */
+    suspend fun checkBadges(announce: Boolean = true) {
+        val done = downloads.states.value.count { it.value.state == com.alideniz.adtmusic.playback.DlState.DONE }
+        val badges = runCatching { com.alideniz.adtmusic.data.Insights.badges(dao, done) }.getOrNull() ?: return
+        val known = settings.unlockedBadges.value.split(",").filter { it.isNotBlank() }.toSet()
+        val now = badges.filter { it.unlocked }.map { it.id }.toSet()
+        val fresh = badges.filter { it.unlocked && it.id !in known }
+        if (now != known) settings.unlockedBadges.set(now.joinToString(","))
+        // İlk açılışta eski başarımları tek tek duyurma
+        if (announce && known.isNotEmpty()) fresh.take(2).forEach { toast("${it.icon} Yeni rozet: ${it.title}") }
+        else if (announce && known.isEmpty() && fresh.size == 1) toast("${fresh.first().icon} Yeni rozet: ${fresh.first().title}")
+    }
 
     /** İçerik ülkesini değiştirir (trendler ve öneriler o ülkeye göre gelir). */
     fun setCountry(code: String) {

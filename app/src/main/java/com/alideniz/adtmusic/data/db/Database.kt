@@ -329,6 +329,19 @@ abstract class AdtDao {
     @Query("SELECT COUNT(*) FROM moments")
     abstract fun momentCount(): Flow<Int>
 
+    // ---- şarkı hakkında
+    @Query("SELECT MIN(playedAt) FROM history WHERE songId = :id")
+    abstract suspend fun firstPlayed(id: String): Long?
+
+    @Query("SELECT COUNT(*) FROM history WHERE songId = :id AND (listenedMs < 0 OR listenedMs >= 30000)")
+    abstract suspend fun validPlays(id: String): Int
+
+    @Query("SELECT COALESCE(SUM(CASE WHEN listenedMs > 0 THEN listenedMs ELSE 0 END), 0) FROM history WHERE songId = :id")
+    abstract suspend fun listenedTotal(id: String): Long
+
+    @Query("SELECT COUNT(*) FROM moments WHERE songId = :id")
+    abstract suspend fun momentCountFor(id: String): Int
+
     // ---- Wrapped
     @Query("SELECT s.*, h.playedAt AS playedAt, h.listenedMs AS listenedMs FROM history h INNER JOIN songs s ON s.id = h.songId WHERE h.playedAt >= :since ORDER BY h.playedAt DESC")
     abstract suspend fun historySince(since: Long): List<HistoryRow>

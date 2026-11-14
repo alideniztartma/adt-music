@@ -135,6 +135,9 @@ object AdtIcons {
             "M18.5 14l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z",
         ),
     )
+    val Badge = stroke("badge", "M12 3a6 6 0 1 1 0 12a6 6 0 1 1 0-12z", "M8.5 14L7 21l5-3 5 3-1.5-7")
+    val Info = stroke("info", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M12 11v6", "M12 7.5v.5")
+    val Quote = mixed("quote", strokes = emptyList(), fills = listOf("M4 10a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2h2v6H4z", "M13 10a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2h2v6h-4z"))
     val Import = stroke("import", "M12 3v11", "M7 9l5 5 5-5", "M4 15v5h16v-5")
     val Mix = stroke("mix", "M3 7h4l9 10h5", "M3 17h4l2.2-2.5", "M14.2 9.6L16 7h5", "M18 4l3 3-3 3", "M18 14l3 3-3 3")
     val Update = stroke("update", "M20 12a8 8 0 1 1-2.3-5.7", "M20 4v5h-5", "M12 8v5l3 2")

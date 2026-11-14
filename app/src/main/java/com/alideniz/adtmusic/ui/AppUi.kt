@@ -20,6 +20,8 @@ sealed interface SheetSpec {
     data class AddMoment(val song: Song, val positionMs: Long) : SheetSpec
     data class Capsule(val row: com.alideniz.adtmusic.data.db.MomentRow) : SheetSpec
     data object Update : SheetSpec
+    data class SongInfo(val song: Song) : SheetSpec
+    data class LyricCard(val song: Song, val line: String) : SheetSpec
     data class Input(
         val title: String,
         val initial: String,
@@ -85,6 +87,8 @@ object Routes {
     const val WRAPPED = "wrapped"
     const val FOLLOWING = "following"
     const val MOMENTS = "moments"
+    const val BADGES = "badges"
+    const val TASTE = "taste"
     const val IMPORT = "import"
     const val MIX = "mix/{kind}"
     const val SMART = "smart/{kind}"

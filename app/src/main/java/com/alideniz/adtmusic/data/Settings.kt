@@ -98,6 +98,23 @@ class Settings(context: Context) {
     val volumeBoost = Pref("volume_boost", 0)
     val miniPlayerProgress = Pref("mini_player_progress", true)
 
+    // Rozetler, profil, bildirimler
+    val unlockedBadges = Pref("unlocked_badges", "")
+    val profileName = Pref("profile_name", "")
+    val releaseNotifications = Pref("release_notifications", true)
+    val weeklyNotification = Pref("weekly_notification", true)
+    val lastWeeklyNotice = Pref("last_weekly_notice", 0L)
+    /** sanatçı adı → kanal adresi (JSON) */
+    val artistUrls = Pref("artist_urls", "{}")
+    /** sanatçı adı → son görülen video kimliği (JSON) */
+    val artistLastSeen = Pref("artist_last_seen", "{}")
+
+    // Oynatıcı görselleri
+    /** "off", "bars" veya "wave" */
+    val visualizerStyle = Pref("visualizer_style", "off")
+    /** "off", "breathe" veya "beat" */
+    val coverAnimation = Pref("cover_animation", "breathe")
+
     // Güncelleme
     val autoUpdateCheck = Pref("auto_update_check", true)
     val lastUpdateCheck = Pref("last_update_check", 0L)

@@ -35,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -198,6 +199,18 @@ fun SettingsScreen() {
     val headset by s.headsetGestures.flow.collectAsState()
     val autoUpdate by s.autoUpdateCheck.flow.collectAsState()
     val showFps by s.showFps.flow.collectAsState()
+    val visualizer by s.visualizerStyle.flow.collectAsState()
+    val coverAnim by s.coverAnimation.flow.collectAsState()
+    val releaseNotify by s.releaseNotifications.flow.collectAsState()
+    val weeklyNotify by s.weeklyNotification.flow.collectAsState()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var pendingVisualizer by remember { mutableStateOf<String?>(null) }
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val want = pendingVisualizer
+        pendingVisualizer = null
+        if (granted && want != null) s.visualizerStyle.set(want)
+        else if (!granted) app.toast("Görselleştirici için ses izni gerekli (yalnızca çalan müziği okur)")
+    }
     val reduceMotion by s.reduceMotion.flow.collectAsState()
     val haptics by s.haptics.flow.collectAsState()
     val quality by s.audioQuality.flow.collectAsState()
@@ -299,6 +312,29 @@ fun SettingsScreen() {
         Choice("Hizalama", listOf("start" to "Sola", "center" to "Ortala"), lyricsAlign) { s.lyricsAlign.set(it) }
         Choice("Yazı boyutu", listOf(22 to "Küçük", 26 to "Orta", 32 to "Büyük", 38 to "Dev"), lyricsSize) { s.lyricsTextSize.set(it) }
         SwitchRow("Sözler açıkken ekran kapanmasın", null, keepScreen) { s.keepScreenOnLyrics.set(it) }
+
+        // ------------------------------------------------------------ oynatıcı görselleri
+        Group("Oynatıcı görselleri")
+        Choice(
+            "Kapak animasyonu",
+            listOf("off" to "Kapalı", "breathe" to "Nefes", "beat" to "Ritme göre"),
+            coverAnim,
+        ) { s.coverAnimation.set(it) }
+        Choice(
+            "Ses görselleştirici",
+            listOf("off" to "Kapalı", "bars" to "Çubuklar", "wave" to "Dalga"),
+            visualizer,
+        ) { style ->
+            val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                ctx, android.Manifest.permission.RECORD_AUDIO,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (style == "off" || granted) s.visualizerStyle.set(style)
+            else { pendingVisualizer = style; micPermission.launch(android.Manifest.permission.RECORD_AUDIO) }
+        }
+        Txt(
+            "Görselleştirici ve ritim animasyonu, Android'in ses analiz aracını kullanır; bu yüzden ses izni ister. Mikrofon dinlenmez, yalnızca çalan müzik okunur.",
+            AdtTheme.type.caption, color = c.muted, modifier = Modifier.padding(horizontal = 20.dp),
+        )
 
         // ------------------------------------------------------------ akıcılık
         Group("Akıcılık")
@@ -409,6 +445,12 @@ fun SettingsScreen() {
         NavRow("Yedekten geri yükle", "Mevcut kütüphanene eklenir") {
             importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
         }
+
+        // ------------------------------------------------------------ bildirimler
+        Group("Bildirimler")
+        SwitchRow("Yeni çıkanlar", "Takip ettiğin sanatçılar yeni şarkı paylaşınca haber verir.", releaseNotify) { s.releaseNotifications.set(it) }
+        SwitchRow("Haftalık özet", "Pazar akşamları haftanın dinleme özetini gönderir.", weeklyNotify) { s.weeklyNotification.set(it) }
+        NavRow("Rozetler ve seri", "") { ui.navigate(Routes.BADGES) }
 
         // ------------------------------------------------------------ güncelleme
         Group("Güncelleme")

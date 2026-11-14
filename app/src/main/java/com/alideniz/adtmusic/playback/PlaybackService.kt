@@ -100,6 +100,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     // ---- kulaklık hareketleri
+    private var songsSinceBadgeCheck = 0
     private var tapCount = 0
     private var tapJob: kotlinx.coroutines.Job? = null
     private var longPressHandled = false
@@ -150,6 +151,7 @@ class PlaybackService : MediaLibraryService() {
         player.addListener(listener)
 
         c.effects.attach(audioSessionId)
+        c.spectrum.setSession(audioSessionId)
         c.sleepTimer.attach(player)
 
         val openApp = PendingIntent.getActivity(
@@ -232,6 +234,11 @@ class PlaybackService : MediaLibraryService() {
             saveQueue()
             maybeExtendWithRadio()
             preloadUpcoming()
+            songsSinceBadgeCheck++
+            if (songsSinceBadgeCheck >= 3) {
+                songsSinceBadgeCheck = 0
+                scope.launch { kotlinx.coroutines.delay(5000); c.checkBadges() }
+            }
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {

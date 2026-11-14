@@ -116,6 +116,8 @@ fun SheetHost(ui: AppUi) {
                     is SheetSpec.Capsule -> com.alideniz.adtmusic.ui.screens.CapsuleContent(s, ui)
                     SheetSpec.Update -> com.alideniz.adtmusic.ui.screens.UpdateContent(ui)
                     is SheetSpec.Confirm -> ConfirmContent(s, ui)
+                    is SheetSpec.SongInfo -> com.alideniz.adtmusic.ui.screens.SongInfoContent(s, ui)
+                    is SheetSpec.LyricCard -> com.alideniz.adtmusic.ui.screens.LyricCardContent(s, ui)
                     null -> Unit
                 }
             }
@@ -202,6 +204,7 @@ private fun SongOptionsContent(spec: SheetSpec.SongOptions, ui: AppUi) {
         if (spec.queueIndex != null) {
             SheetItem(AdtIcons.Close, "Sıradan çıkar", { app.player.removeAt(spec.queueIndex); ui.dismiss() })
         }
+        SheetItem(AdtIcons.Info, "Şarkı hakkında", { ui.show(SheetSpec.SongInfo(song)) })
         SheetItem(AdtIcons.Share, "Paylaş", { shareSong(context, song); ui.dismiss() })
     }
 }

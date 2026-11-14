@@ -13,8 +13,8 @@ android {
         applicationId = "com.alideniz.adtmusic"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.2.0"
+        versionCode = 5
+        versionName = "1.3.0"
         // GitHub Actions derleme numarası: uygulama içi güncelleme bununla karşılaştırır.
         buildConfigField("int", "BUILD_NUMBER", System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
@@ -96,6 +96,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
+    implementation("com.google.zxing:core:3.5.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.9.0")
 

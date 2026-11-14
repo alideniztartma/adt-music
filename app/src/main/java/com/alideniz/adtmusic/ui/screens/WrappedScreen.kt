@@ -440,10 +440,16 @@ private fun SummaryCard(w: WrappedData, fg: Color) {
 }
 
 /** Görseli önbelleğe kaydeder ve paylaşım menüsünü açar. */
-private suspend fun shareBitmap(context: Context, bitmap: Bitmap) {
+suspend fun shareBitmap(
+    context: Context,
+    bitmap: Bitmap,
+    name: String = "adt-wrapped",
+    text: String = "ADT Music Wrapped'im 🎧",
+    title: String = "Wrapped'ini paylaş",
+) {
     val file = withContext(Dispatchers.IO) {
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }
-        val f = File(dir, "adt-wrapped-${System.currentTimeMillis()}.png")
+        val f = File(dir, "$name-${System.currentTimeMillis()}.png")
         FileOutputStream(f).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         f
     }
@@ -451,8 +457,8 @@ private suspend fun shareBitmap(context: Context, bitmap: Bitmap) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, "ADT Music Wrapped'im 🎧")
+        putExtra(Intent.EXTRA_TEXT, text)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Wrapped'ini paylaş").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    context.startActivity(Intent.createChooser(intent, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

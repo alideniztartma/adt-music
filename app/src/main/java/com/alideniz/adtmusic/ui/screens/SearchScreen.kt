@@ -204,6 +204,12 @@ fun SearchScreen() {
     val downloads by app.downloads.states.collectAsState()
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val pending by app.pendingSearch.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(pending) {
+        val q = pending ?: return@LaunchedEffect
+        app.pendingSearch.value = null
+        vm.submit(q, ui)
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 

@@ -94,6 +94,8 @@ fun LibraryScreen() {
             LibraryRow(AdtIcons.Following, "Takip ettiğin sanatçılar", followed.size.toString()) { ui.navigate(Routes.FOLLOWING) }
             LibraryRow(AdtIcons.Moment, "Anıların", momentCount.toString()) { ui.navigate(Routes.MOMENTS) }
             LibraryRow(AdtIcons.Wrapped, "ADT Wrapped", "") { ui.navigate(Routes.WRAPPED) }
+            LibraryRow(AdtIcons.Badge, "Rozetler ve seri", "") { ui.navigate(Routes.BADGES) }
+            LibraryRow(AdtIcons.Following, "Zevk karşılaştır", "") { ui.navigate(Routes.TASTE) }
             LibraryRow(AdtIcons.Import, "Spotify / YouTube listesi aktar", "") { ui.navigate(Routes.IMPORT) }
             LibraryRow(AdtIcons.Stats, "Dinleme istatistiklerin", "") { ui.navigate(Routes.STATS) }
             LibraryRow(AdtIcons.Equalizer, "Ekolayzer", "") { ui.navigate(Routes.EQUALIZER) }

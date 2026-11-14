@@ -124,6 +124,10 @@ fun HomeScreen() {
     val showTrending by app.settings.homeShowTrending.flow.collectAsState()
     val showAlbums by app.settings.homeShowAlbums.flow.collectAsState()
     val totalPlays by remember { app.dao.totalPlays() }.collectAsState(initial = 0)
+    val insights by androidx.compose.runtime.produceState<Pair<com.alideniz.adtmusic.data.Streak, com.alideniz.adtmusic.data.Weekly>?>(null, totalPlays) {
+        val rows = app.dao.historySince(System.currentTimeMillis() - 400L * 86_400_000L)
+        value = com.alideniz.adtmusic.data.Insights.streak(rows) to com.alideniz.adtmusic.data.Insights.weekly(rows)
+    }
     val recent by remember { app.dao.recentSongs(12) }.collectAsState(initial = emptyList())
     val player by app.player.state.collectAsState()
     val likedIds by app.likedIds.collectAsState()
@@ -136,6 +140,8 @@ fun HomeScreen() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Wordmark()
+                Spacer(Modifier.width(12.dp))
+                insights?.first?.let { StreakChip(it) { ui.navigate(Routes.BADGES) } }
                 Spacer(Modifier.weight(1f))
                 IconBtn(AdtIcons.Refresh, "Yenile", { vm.load() })
                 IconBtn(AdtIcons.Settings, "Ayarlar", { ui.navigate(Routes.SETTINGS) })
@@ -175,9 +181,16 @@ fun HomeScreen() {
             }
         }
 
-        if (totalPlays >= 5) {
+        insights?.second?.takeIf { it.minutes > 0 }?.let { w ->
             item {
                 Spacer(Modifier.height(22.dp))
+                WeeklyCard(w) { ui.navigate(Routes.STATS) }
+            }
+        }
+
+        if (totalPlays >= 5) {
+            item {
+                Spacer(Modifier.height(14.dp))
                 WrappedBanner { ui.navigate(Routes.WRAPPED) }
             }
         }

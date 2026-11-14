@@ -309,6 +309,7 @@ private fun AdtRoot(
                 else app.toast("Henüz beğendiğin şarkı yok")
             }
             "daily" -> ui.navigate(Routes.mix("daily"))
+            "weekly" -> ui.navigate(Routes.BADGES)
         }
     }
 
@@ -322,6 +323,7 @@ private fun AdtRoot(
             ui.show(com.alideniz.adtmusic.ui.SheetSpec.Capsule(first.copy(moment = first.moment.copy(revealed = true))))
             return@LaunchedEffect
         }
+        app.checkBadges()
         if (app.settings.autoUpdateCheck.value) {
             val info = runCatching { app.updater.check() }.getOrNull()
             if (info != null) ui.show(com.alideniz.adtmusic.ui.SheetSpec.Update)
@@ -404,6 +406,8 @@ private fun AdtRoot(
                 composable(Routes.WRAPPED) { WrappedScreen() }
                 composable(Routes.FOLLOWING) { FollowingScreen() }
                 composable(Routes.MOMENTS) { com.alideniz.adtmusic.ui.screens.MomentsScreen() }
+                composable(Routes.BADGES) { com.alideniz.adtmusic.ui.screens.BadgesScreen() }
+                composable(Routes.TASTE) { com.alideniz.adtmusic.ui.screens.TasteScreen() }
                 composable(Routes.IMPORT) { com.alideniz.adtmusic.ui.screens.ImportScreen() }
                 composable(Routes.MIX, arguments = listOf(navArgument("kind") { type = NavType.StringType })) { e ->
                     com.alideniz.adtmusic.ui.screens.MixScreen(e.arguments?.getString("kind").orEmpty(), smart = false)
@@ -513,7 +517,8 @@ private fun tabOf(route: String?): String? = when (route) {
     null -> null
     Routes.HOME, Routes.SEARCH, Routes.LIBRARY -> route
     Routes.LIKED, Routes.DOWNLOADS, Routes.HISTORY, Routes.STATS, Routes.PLAYLIST,
-    Routes.FOLLOWING, Routes.WRAPPED, Routes.EQUALIZER, Routes.MOMENTS, Routes.IMPORT, Routes.SMART -> Routes.LIBRARY
+    Routes.FOLLOWING, Routes.WRAPPED, Routes.EQUALIZER, Routes.MOMENTS, Routes.IMPORT, Routes.SMART,
+    Routes.BADGES, Routes.TASTE -> Routes.LIBRARY
     Routes.MIX -> Routes.HOME
     else -> null
 }
