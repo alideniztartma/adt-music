@@ -7,6 +7,8 @@ import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import android.app.Activity
+import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -48,6 +50,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -165,25 +168,57 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Ekranın desteklediği en yüksek yenileme hızını (90/120/144 Hz) ister. */
+    private var wantHighRefresh = true
+
+    /**
+     * Ekranın desteklediği en yüksek yenileme hızını (90/120/144 Hz) ister.
+     * Bazı telefonlar (Xiaomi, Samsung, OnePlus) uygulamalara varsayılan olarak 60 Hz verir;
+     * pencere için tercih edilen ekran modunu açıkça seçmek bunu aşar.
+     */
     private fun applyRefreshRate(high: Boolean) {
+        wantHighRefresh = high
         runCatching {
             @Suppress("DEPRECATION")
             val d = if (Build.VERSION.SDK_INT >= 30) display else windowManager.defaultDisplay
             d ?: return
             val current = d.mode
-            val modeId = if (high) {
-                d.supportedModes
-                    .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
-                    .maxByOrNull { it.refreshRate }?.modeId ?: 0
-            } else 0
+            val modes = d.supportedModes.toList()
+            val best = if (high) {
+                val sameRes = modes.filter {
+                    it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight
+                }.maxByOrNull { it.refreshRate }
+                val fastest = modes.maxWithOrNull(
+                    compareBy<android.view.Display.Mode> { it.refreshRate }
+                        .thenBy { it.physicalWidth * it.physicalHeight }
+                )
+                // Aynı çözünürlükte en yüksek hız yoksa (ör. 144 Hz yalnızca FHD'de) en hızlı modu seç.
+                if (fastest != null && sameRes != null && fastest.refreshRate > sameRes.refreshRate + 1f) fastest else sameRes
+            } else null
             val attrs = window.attributes
-            attrs.preferredDisplayModeId = modeId
-            if (high) {
-                attrs.preferredRefreshRate = d.supportedModes.maxOf { it.refreshRate }
-            }
+            attrs.preferredDisplayModeId = best?.modeId ?: 0
+            attrs.preferredRefreshRate = best?.refreshRate ?: 0f
             window.attributes = attrs
+
+            // Android 15+: görünüm ağacının yüksek kare hızı istediğini bildir.
+            if (Build.VERSION.SDK_INT >= 35) {
+                val category = if (high) View.REQUESTED_FRAME_RATE_CATEGORY_HIGH else View.REQUESTED_FRAME_RATE_CATEGORY_DEFAULT
+                window.decorView.setRequestedFrameRate(category)
+                findViewById<ViewGroup>(android.R.id.content)?.let { root ->
+                    root.setRequestedFrameRate(category)
+                    for (i in 0 until root.childCount) root.getChildAt(i).setRequestedFrameRate(category)
+                }
+            }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyRefreshRate(wantHighRefresh)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) applyRefreshRate(wantHighRefresh)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -402,6 +437,8 @@ private fun AdtRoot(
             // Geri tuşu önce açık paneli, sonra oynatıcıyı kapatır (sonra eklenen işleyici önceliklidir).
             BackHandler(enabled = ui.playerExpanded) { ui.playerExpanded = false }
             SheetHost(ui)
+            val showFps by app.settings.showFps.flow.collectAsState()
+            if (showFps) FpsOverlay(Modifier.align(Alignment.TopEnd))
         }
     }
 }
@@ -496,5 +533,41 @@ private fun MessageHost() {
         ) {
             Txt(last, AdtTheme.type.bodyStrong, color = c.paper, maxLines = 2)
         }
+    }
+}
+
+/** Ekranın o anki yenileme hızı ve uygulamanın çizdiği kare sayısı (Ayarlar → Akıcılık). */
+@Composable
+private fun FpsOverlay(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var fps by remember { mutableStateOf(0) }
+    var hz by remember { mutableStateOf(0f) }
+    LaunchedEffect(Unit) {
+        var frames = 0
+        var start = 0L
+        while (true) {
+            androidx.compose.runtime.withFrameNanos { t ->
+                if (start == 0L) start = t
+                frames++
+                if (t - start >= 1_000_000_000L) {
+                    fps = frames
+                    frames = 0
+                    start = t
+                    @Suppress("DEPRECATION")
+                    val d = if (Build.VERSION.SDK_INT >= 30) (context as? Activity)?.display
+                    else (context as? Activity)?.windowManager?.defaultDisplay
+                    hz = d?.refreshRate ?: 0f
+                }
+            }
+        }
+    }
+    Box(
+        modifier
+            .statusBarsPadding()
+            .padding(8.dp)
+            .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Txt("${hz.toInt()} Hz · $fps FPS", AdtTheme.type.label, color = androidx.compose.ui.graphics.Color(0xFF7CFF8A))
     }
 }

@@ -191,6 +191,7 @@ fun SettingsScreen() {
     val lyricsSize by s.lyricsTextSize.flow.collectAsState()
     val keepScreen by s.keepScreenOnLyrics.flow.collectAsState()
     val highRefresh by s.highRefreshRate.flow.collectAsState()
+    val showFps by s.showFps.flow.collectAsState()
     val reduceMotion by s.reduceMotion.flow.collectAsState()
     val haptics by s.haptics.flow.collectAsState()
     val quality by s.audioQuality.flow.collectAsState()
@@ -296,6 +297,7 @@ fun SettingsScreen() {
         // ------------------------------------------------------------ akıcılık
         Group("Akıcılık")
         SwitchRow("Yüksek yenileme hızı", "Ekranın desteklediği en yüksek hızı kullanır (90/120/144 Hz).", highRefresh) { s.highRefreshRate.set(it) }
+        SwitchRow("Hız göstergesi", "Köşede ekran yenileme hızını (Hz) ve kare sayısını (FPS) gösterir.", showFps) { s.showFps.set(it) }
         SwitchRow("Animasyonları azalt", "Geçişler sade ve kısa olur.", reduceMotion) { s.reduceMotion.set(it) }
         SwitchRow("Dokunma titreşimi", "Düğmelere basınca hafif titreşim.", haptics) { s.haptics.set(it) }
 

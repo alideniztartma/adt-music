@@ -70,6 +70,7 @@ class Settings(context: Context) {
     val fontScale = Pref("font_scale", 1f)
     val reduceMotion = Pref("reduce_motion", false)
     val highRefreshRate = Pref("high_refresh_rate", true)
+    val showFps = Pref("show_fps", false)
     /** "tint", "plain" veya "blur" */
     val playerBackground = Pref("player_background", "tint")
     /** "fill", "word", "glow" veya "focus" */
