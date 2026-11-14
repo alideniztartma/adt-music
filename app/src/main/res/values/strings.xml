@@ -3,4 +3,7 @@
     <string name="app_name">ADT Music</string>
     <string name="download_channel">İndirmeler</string>
     <string name="playback_channel">Çalma</string>
+    <string name="shortcut_search">Ara</string>
+    <string name="shortcut_shuffle">Beğenilenleri karıştır</string>
+    <string name="shortcut_daily">Günlük Karışım</string>
 </resources>

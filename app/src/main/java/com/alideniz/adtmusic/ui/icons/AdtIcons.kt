@@ -126,6 +126,19 @@ object AdtIcons {
             "M14.5 6.3a1.3 1.3 0 1 1 0 2.6a1.3 1.3 0 1 1 0-2.6z",
         ),
     )
+    /** Music Moments: parıltı. */
+    val Moment = mixed(
+        "moment",
+        strokes = emptyList(),
+        fills = listOf(
+            "M10 3l1.9 5.6L17.5 10.5l-5.6 1.9L10 18l-1.9-5.6L2.5 10.5l5.6-1.9z",
+            "M18.5 14l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z",
+        ),
+    )
+    val Import = stroke("import", "M12 3v11", "M7 9l5 5 5-5", "M4 15v5h16v-5")
+    val Mix = stroke("mix", "M3 7h4l9 10h5", "M3 17h4l2.2-2.5", "M14.2 9.6L16 7h5", "M18 4l3 3-3 3", "M18 14l3 3-3 3")
+    val Update = stroke("update", "M20 12a8 8 0 1 1-2.3-5.7", "M20 4v5h-5", "M12 8v5l3 2")
+    val DragHandle = stroke("drag", "M8 7h8", "M8 12h8", "M8 17h8")
     val Upload = stroke("upload", "M12 15V3", "M7 8l5-5 5 5", "M5 21h14")
     val Globe = stroke("globe", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M3 12h18", "M12 3c2.5 2.7 3.6 5.7 3.6 9s-1.1 6.3-3.6 9c-2.5-2.7-3.6-5.7-3.6-9S9.5 5.7 12 3z")
     val Link = stroke("link", "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1", "M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1")

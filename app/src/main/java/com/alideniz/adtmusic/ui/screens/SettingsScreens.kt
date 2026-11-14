@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
@@ -191,6 +192,11 @@ fun SettingsScreen() {
     val lyricsSize by s.lyricsTextSize.flow.collectAsState()
     val keepScreen by s.keepScreenOnLyrics.flow.collectAsState()
     val highRefresh by s.highRefreshRate.flow.collectAsState()
+    val frameRate by s.frameRate.flow.collectAsState()
+    val crossfade by s.crossfadeSec.flow.collectAsState()
+    val normalize by s.normalizeVolume.flow.collectAsState()
+    val headset by s.headsetGestures.flow.collectAsState()
+    val autoUpdate by s.autoUpdateCheck.flow.collectAsState()
     val showFps by s.showFps.flow.collectAsState()
     val reduceMotion by s.reduceMotion.flow.collectAsState()
     val haptics by s.haptics.flow.collectAsState()
@@ -296,7 +302,15 @@ fun SettingsScreen() {
 
         // ------------------------------------------------------------ akıcılık
         Group("Akıcılık")
-        SwitchRow("Yüksek yenileme hızı", "Ekranın desteklediği en yüksek hızı kullanır (90/120/144 Hz).", highRefresh) { s.highRefreshRate.set(it) }
+        Choice(
+            "Kare hızı",
+            listOf("high" to "Yüksek (en yüksek, ör. 144 Hz)", "low" to "Düşük (60 Hz, pil dostu)"),
+            frameRate,
+        ) { s.frameRate.set(it) }
+        Txt(
+            "Yüksekte tüm arayüz ve animasyonlar ekranın en yüksek hızında çizilir.",
+            AdtTheme.type.caption, color = c.muted, modifier = Modifier.padding(horizontal = 20.dp),
+        )
         SwitchRow("Hız göstergesi", "Köşede ekran yenileme hızını (Hz) ve kare sayısını (FPS) gösterir.", showFps) { s.showFps.set(it) }
         SwitchRow("Animasyonları azalt", "Geçişler sade ve kısa olur.", reduceMotion) { s.reduceMotion.set(it) }
         SwitchRow("Dokunma titreşimi", "Düğmelere basınca hafif titreşim.", haptics) { s.haptics.set(it) }
@@ -307,6 +321,17 @@ fun SettingsScreen() {
         SwitchRow("Mobil veride tasarruf", "Wi-Fi yokken düşük kalite kullanılır.", dataSaver) { s.mobileDataSaver.set(it) }
         SwitchRow("Sıradaki şarkıyı önceden yükle", "Geçişte beklemezsin; biraz daha veri kullanır.", preload) { s.preloadNext.set(it) }
         SwitchRow("Otomatik oynatma", "Sıra bitince benzer şarkılarla radyo gibi devam eder.", autoplay) { s.autoplay.set(it) }
+        Choice(
+            "Şarkılar arası geçiş",
+            listOf(0 to "Kapalı", 2 to "2 sn", 4 to "4 sn", 6 to "6 sn", 8 to "8 sn", 12 to "12 sn"),
+            crossfade,
+        ) { s.crossfadeSec.set(it) }
+        SwitchRow("Ses dengeleme", "Şarkılar arasındaki ses seviyesi farkını otomatik eşitler.", normalize) { s.normalizeVolume.set(it) }
+        SwitchRow(
+            "Kulaklık hareketleri",
+            "Kulaklık tuşu: 1 dokunuş çal/duraklat · 2 dokunuş sonraki · 3 dokunuş önceki · basılı tut beğen",
+            headset,
+        ) { s.headsetGestures.set(it) }
         SwitchRow("Sessiz kısımları atla", "Şarkı başı ve sonundaki sessizliği atlar.", skipSilence) { s.skipSilence.set(it) }
         SwitchRow("Kulaklık çıkınca durdur", "Uygulama yeniden açılınca geçerli olur.", pauseOnDisconnect) { s.pauseOnDisconnect.set(it) }
         SwitchRow("Kaldığın yerden devam", "Uygulama açılınca son sıranı hazırlar.", resume) { s.resumeOnStart.set(it) }
@@ -383,6 +408,16 @@ fun SettingsScreen() {
         }
         NavRow("Yedekten geri yükle", "Mevcut kütüphanene eklenir") {
             importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+        }
+
+        // ------------------------------------------------------------ güncelleme
+        Group("Güncelleme")
+        SwitchRow("Güncellemeleri otomatik denetle", "Yeni sürüm çıkınca açılışta haber verir.", autoUpdate) { s.autoUpdateCheck.set(it) }
+        NavRow("Şimdi denetle", "Kurulu derleme: ${app.updater.currentBuild}") {
+            scope.launch {
+                val info = runCatching { app.updater.check(force = true) }.getOrNull()
+                if (info != null) ui.show(SheetSpec.Update) else app.toast("Uygulaman güncel")
+            }
         }
 
         // ------------------------------------------------------------ hakkında
@@ -538,5 +573,64 @@ private fun <T> Choice(title: String, options: List<Pair<T, String>>, selected: 
             }
         }
         Line()
+    }
+}
+
+/** "Yeni sürüm var" paneli. */
+@Composable
+fun UpdateContent(ui: com.alideniz.adtmusic.ui.AppUi) {
+    val app = LocalContext.current.container
+    val c = AdtTheme.colors
+    val scope = rememberCoroutineScope()
+    val info by app.updater.available.collectAsState()
+    val progress by app.updater.progress.collectAsState()
+    Column(Modifier.padding(horizontal = 24.dp)) {
+        Txt("YENİ SÜRÜM", AdtTheme.type.label, color = c.accent)
+        Spacer(Modifier.height(4.dp))
+        val i = info
+        if (i == null) {
+            Txt("Uygulaman güncel.", AdtTheme.type.headline)
+            Spacer(Modifier.height(16.dp))
+            com.alideniz.adtmusic.ui.components.Btn("Tamam", { ui.dismiss() }, Modifier.fillMaxWidth(), style = com.alideniz.adtmusic.ui.components.BtnStyle.OUTLINE)
+        } else {
+            Txt(i.title, AdtTheme.type.headline)
+            Txt("Derleme ${app.updater.currentBuild} → ${i.build} · ${formatBytes(i.sizeBytes)}", AdtTheme.type.caption, color = c.muted)
+            if (i.notes.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 220.dp)
+                        .clip(AdtTheme.shape)
+                        .background(c.surface)
+                        .verticalScroll(rememberScrollState())
+                        .padding(14.dp)
+                ) { Txt(i.notes, AdtTheme.type.body) }
+            }
+            Spacer(Modifier.height(16.dp))
+            if (progress >= 0f) {
+                Box(Modifier.fillMaxWidth().height(6.dp).background(c.line)) {
+                    Box(Modifier.fillMaxWidth(progress).height(6.dp).background(c.accent))
+                }
+                Spacer(Modifier.height(6.dp))
+                Txt("İndiriliyor… %${(progress * 100).toInt()}", AdtTheme.type.caption, color = c.muted)
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    com.alideniz.adtmusic.ui.components.Btn("Sonra", { ui.dismiss() }, Modifier.weight(1f), style = com.alideniz.adtmusic.ui.components.BtnStyle.OUTLINE)
+                    com.alideniz.adtmusic.ui.components.Btn("Güncelle", {
+                        if (!app.updater.canInstall()) {
+                            app.toast("Önce ADT Music'e uygulama yükleme izni ver, sonra tekrar dokun")
+                            app.updater.openInstallPermission()
+                        } else {
+                            scope.launch {
+                                runCatching { app.updater.downloadAndInstall(i) }
+                                    .onFailure { app.toast("Güncelleme indirilemedi") }
+                            }
+                        }
+                    }, Modifier.weight(1f), icon = AdtIcons.Download, style = com.alideniz.adtmusic.ui.components.BtnStyle.ACCENT)
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }

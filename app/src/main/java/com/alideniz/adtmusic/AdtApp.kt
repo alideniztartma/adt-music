@@ -90,6 +90,8 @@ class AppContainer(val context: Context) {
 
     val youtube = YouTubeRepository()
     val lyrics = LyricsRepository(httpClient, dao)
+    val mixes = com.alideniz.adtmusic.data.Mixes(dao, youtube)
+    val updater = com.alideniz.adtmusic.data.Updater(context, httpClient, settings)
 
     val media = MediaStack(context, settings, youtube, httpClient)
     val downloads = DownloadTracker(context, media, settings, dao, appScope)

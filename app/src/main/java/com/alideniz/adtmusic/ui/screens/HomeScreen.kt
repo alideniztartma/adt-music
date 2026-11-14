@@ -204,6 +204,11 @@ fun HomeScreen() {
             }
         }
 
+        item {
+            Spacer(Modifier.height(30.dp))
+            MixShelf()
+        }
+
         when {
             feed == null && vm.loading -> item { LoadingBlock() }
             feed == null && vm.error != null -> item {

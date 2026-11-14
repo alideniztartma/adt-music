@@ -41,6 +41,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -108,6 +112,9 @@ fun SheetHost(ui: AppUi) {
                     SheetSpec.Speed -> SpeedContent(ui)
                     SheetSpec.Queue -> QueueContent(ui)
                     is SheetSpec.Input -> InputContent(s, ui)
+                    is SheetSpec.AddMoment -> com.alideniz.adtmusic.ui.screens.AddMomentContent(s, ui)
+                    is SheetSpec.Capsule -> com.alideniz.adtmusic.ui.screens.CapsuleContent(s, ui)
+                    SheetSpec.Update -> com.alideniz.adtmusic.ui.screens.UpdateContent(ui)
                     is SheetSpec.Confirm -> ConfirmContent(s, ui)
                     null -> Unit
                 }
@@ -411,12 +418,20 @@ private fun QueueContent(ui: AppUi) {
     val state by app.player.state.collectAsState()
     val downloads by app.downloads.states.collectAsState()
     val listState = rememberLazyListState()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val rowHeight = 60.dp
+    val rowPx = with(density) { rowHeight.toPx() }
     LaunchedEffect(Unit) { listState.scrollToItem((state.index - 1).coerceAtLeast(0)) }
+
+    // Sürükle-bırak durumu
+    var dragFrom by remember { mutableStateOf(-1) }
+    var dragOffset by remember { mutableStateOf(0f) }
+    val dragTo = if (dragFrom >= 0) (dragFrom + kotlin.math.round(dragOffset / rowPx).toInt()).coerceIn(0, (state.queue.size - 1).coerceAtLeast(0)) else -1
 
     Row(Modifier.padding(horizontal = 24.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Txt("Sıra", AdtTheme.type.headline)
-            Txt("${state.queue.size} şarkı · ${state.queue.size - state.index - 1} sıradaki", AdtTheme.type.caption, color = c.muted)
+            Txt("${state.queue.size} şarkı · tutup sürükleyerek sırala", AdtTheme.type.caption, color = c.muted)
         }
         IconBtn(AdtIcons.Shuffle, "Karıştır", { app.player.toggleShuffle() }, tint = if (state.shuffle) c.accent else c.ink)
         Txt(
@@ -428,14 +443,50 @@ private fun QueueContent(ui: AppUi) {
     LazyColumn(state = listState, modifier = Modifier.heightIn(max = 520.dp)) {
         itemsIndexed(state.queue, key = { i, s -> "$i-${s.id}" }) { i, song ->
             val current = i == state.index
+            val dragging = i == dragFrom
+            // Sürüklenen satırın geçtiği yerdeki satırlar yer açar
+            val shiftTarget = when {
+                dragFrom < 0 || dragging -> 0f
+                dragFrom < dragTo && i in (dragFrom + 1)..dragTo -> -rowPx
+                dragFrom > dragTo && i in dragTo until dragFrom -> rowPx
+                else -> 0f
+            }
+            val shift by androidx.compose.animation.core.animateFloatAsState(shiftTarget, androidx.compose.animation.core.spring(stiffness = 600f), label = "shift")
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .background(if (current) c.surface else Color.Transparent)
+                    .height(rowHeight)
+                    .zIndex(if (dragging) 1f else 0f)
+                    .graphicsLayer {
+                        translationY = if (dragging) dragOffset else shift
+                        shadowElevation = if (dragging) 16f else 0f
+                    }
+                    .background(if (dragging || current) c.surface else c.paper)
                     .press(label = song.title) { app.player.skipTo(i) }
-                    .padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                    .padding(start = 8.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Tutma kolu
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .pointerInput(i, state.queue.size) {
+                            detectDragGestures(
+                                onDragStart = { dragFrom = i; dragOffset = 0f },
+                                onDragEnd = {
+                                    val size = app.player.state.value.queue.size
+                                    val to = (dragFrom + kotlin.math.round(dragOffset / rowPx).toInt()).coerceIn(0, (size - 1).coerceAtLeast(0))
+                                    if (dragFrom >= 0 && to != dragFrom) app.player.move(dragFrom, to)
+                                    dragFrom = -1; dragOffset = 0f
+                                },
+                                onDragCancel = { dragFrom = -1; dragOffset = 0f },
+                                onDrag = { change, amount -> change.consume(); dragOffset += amount.y },
+                            )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AdtIcon(AdtIcons.DragHandle, "Sürükle", tint = c.faint, size = 20.dp)
+                }
                 Cover(song.thumbnail, Modifier.size(44.dp))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -445,11 +496,10 @@ private fun QueueContent(ui: AppUi) {
                         Txt(song.artist, AdtTheme.type.caption, color = c.muted, maxLines = 1)
                     }
                 }
-                if (!current) {
-                    IconBtn(AdtIcons.ChevronDown, "Aşağı taşı", { app.player.move(i, i + 1) }, size = 36.dp, iconSize = 18.dp, tint = c.muted, enabled = i < state.queue.size - 1)
-                    IconBtn(AdtIcons.Close, "Sıradan çıkar", { app.player.removeAt(i) }, size = 36.dp, iconSize = 18.dp, tint = c.muted)
-                } else {
+                if (current) {
                     PlayingBars(c.accent, state.isPlaying, Modifier.padding(horizontal = 12.dp))
+                } else {
+                    IconBtn(AdtIcons.Close, "Sıradan çıkar", { app.player.removeAt(i) }, size = 36.dp, iconSize = 18.dp, tint = c.muted)
                 }
             }
         }

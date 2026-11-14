@@ -17,6 +17,9 @@ sealed interface SheetSpec {
     data object SleepTimer : SheetSpec
     data object Speed : SheetSpec
     data object Queue : SheetSpec
+    data class AddMoment(val song: Song, val positionMs: Long) : SheetSpec
+    data class Capsule(val row: com.alideniz.adtmusic.data.db.MomentRow) : SheetSpec
+    data object Update : SheetSpec
     data class Input(
         val title: String,
         val initial: String,
@@ -81,6 +84,13 @@ object Routes {
     const val EQUALIZER = "equalizer"
     const val WRAPPED = "wrapped"
     const val FOLLOWING = "following"
+    const val MOMENTS = "moments"
+    const val IMPORT = "import"
+    const val MIX = "mix/{kind}"
+    const val SMART = "smart/{kind}"
+
+    fun mix(kind: String) = "mix/$kind"
+    fun smart(kind: String) = "smart/$kind"
     const val COLLECTION = "collection?url={url}&kind={kind}"
     const val ARTIST = "artist?name={name}&thumb={thumb}"
     const val PLAYLIST = "playlist/{id}"

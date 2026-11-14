@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_search"
+        android:shortcutShortLabel="@string/shortcut_search">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.alideniz.adtmusic"
+            android:targetClass="com.alideniz.adtmusic.MainActivity">
+            <extra android:name="shortcut" android:value="search" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="shuffle_liked"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_shuffle"
+        android:shortcutShortLabel="@string/shortcut_shuffle">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.alideniz.adtmusic"
+            android:targetClass="com.alideniz.adtmusic.MainActivity">
+            <extra android:name="shortcut" android:value="shuffle_liked" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="daily"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_mix"
+        android:shortcutShortLabel="@string/shortcut_daily">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.alideniz.adtmusic"
+            android:targetClass="com.alideniz.adtmusic.MainActivity">
+            <extra android:name="shortcut" android:value="daily" />
+        </intent>
+    </shortcut>
+</shortcuts>

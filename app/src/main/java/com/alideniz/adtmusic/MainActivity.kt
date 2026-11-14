@@ -112,6 +112,7 @@ class MainActivity : ComponentActivity() {
 
     private var pendingLink by mutableStateOf<String?>(null)
     private var pendingOpenPlayer by mutableStateOf(false)
+    private var pendingShortcut by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -128,7 +129,7 @@ class MainActivity : ComponentActivity() {
             val cornerStyle by settings.cornerStyle.flow.collectAsState()
             val fontScale by settings.fontScale.flow.collectAsState()
             val reduceMotion by settings.reduceMotion.flow.collectAsState()
-            val highRefresh by settings.highRefreshRate.flow.collectAsState()
+            val frameRate by settings.frameRate.flow.collectAsState()
             val playerState by container.player.state.collectAsState()
             val fixedAccent = Color(accentInt)
             val coverAccent = rememberCoverAccent(playerState.current?.thumbnail, fallback = fixedAccent)
@@ -144,7 +145,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose { }
             }
-            LaunchedEffect(highRefresh) { applyRefreshRate(highRefresh) }
+            LaunchedEffect(frameRate) { applyRefreshRate(frameRate != "low") }
 
             AdtTheme(
                 themeMode = themeMode,
@@ -163,6 +164,8 @@ class MainActivity : ComponentActivity() {
                     onLinkHandled = { pendingLink = null },
                     openPlayer = pendingOpenPlayer,
                     onOpenPlayerHandled = { pendingOpenPlayer = false },
+                    shortcut = pendingShortcut,
+                    onShortcutHandled = { pendingShortcut = null },
                 )
             }
         }
@@ -193,7 +196,11 @@ class MainActivity : ComponentActivity() {
                 )
                 // Aynı çözünürlükte en yüksek hız yoksa (ör. 144 Hz yalnızca FHD'de) en hızlı modu seç.
                 if (fastest != null && sameRes != null && fastest.refreshRate > sameRes.refreshRate + 1f) fastest else sameRes
-            } else null
+            } else {
+                // Düşük: aynı çözünürlükte 60 Hz'e en yakın mod
+                modes.filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+                    .minByOrNull { kotlin.math.abs(it.refreshRate - 60f) }
+            }
             val attrs = window.attributes
             attrs.preferredDisplayModeId = best?.modeId ?: 0
             attrs.preferredRefreshRate = best?.refreshRate ?: 0f
@@ -201,7 +208,7 @@ class MainActivity : ComponentActivity() {
 
             // Android 15+: görünüm ağacının yüksek kare hızı istediğini bildir.
             if (Build.VERSION.SDK_INT >= 35) {
-                val category = if (high) View.REQUESTED_FRAME_RATE_CATEGORY_HIGH else View.REQUESTED_FRAME_RATE_CATEGORY_DEFAULT
+                val category = if (high) View.REQUESTED_FRAME_RATE_CATEGORY_HIGH else View.REQUESTED_FRAME_RATE_CATEGORY_NORMAL
                 window.decorView.setRequestedFrameRate(category)
                 findViewById<ViewGroup>(android.R.id.content)?.let { root ->
                     root.setRequestedFrameRate(category)
@@ -229,6 +236,7 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         intent ?: return
         if (intent.getBooleanExtra(EXTRA_OPEN_PLAYER, false)) pendingOpenPlayer = true
+        intent.getStringExtra("shortcut")?.let { pendingShortcut = it }
         val link = when (intent.action) {
             Intent.ACTION_VIEW -> intent.dataString
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
@@ -256,6 +264,8 @@ private fun AdtRoot(
     onLinkHandled: () -> Unit,
     openPlayer: Boolean,
     onOpenPlayerHandled: () -> Unit,
+    shortcut: String?,
+    onShortcutHandled: () -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.container
@@ -285,6 +295,37 @@ private fun AdtRoot(
         }
         val start = app.settings.startTab.value
         if (start != Routes.HOME && TABS.any { it.route == start }) navigateTo(nav, start)
+    }
+
+    // Ana ekran kısayolları
+    LaunchedEffect(shortcut) {
+        val sc = shortcut ?: return@LaunchedEffect
+        onShortcutHandled()
+        when (sc) {
+            "search" -> ui.navigate(Routes.SEARCH)
+            "shuffle_liked" -> {
+                val liked = app.dao.likedSongsOnce().map { it.toSong() }
+                if (liked.isNotEmpty()) { app.player.play(liked, shuffle = true); ui.openPlayer() }
+                else app.toast("Henüz beğendiğin şarkı yok")
+            }
+            "daily" -> ui.navigate(Routes.mix("daily"))
+        }
+    }
+
+    // Zaman kapsülleri ve güncelleme denetimi (açılışta)
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1500)
+        val due = runCatching { app.dao.dueCapsules(System.currentTimeMillis()) }.getOrDefault(emptyList())
+        if (due.isNotEmpty()) {
+            val first = due.first()
+            app.dao.markRevealed(first.moment.id)
+            ui.show(com.alideniz.adtmusic.ui.SheetSpec.Capsule(first.copy(moment = first.moment.copy(revealed = true))))
+            return@LaunchedEffect
+        }
+        if (app.settings.autoUpdateCheck.value) {
+            val info = runCatching { app.updater.check() }.getOrNull()
+            if (info != null) ui.show(com.alideniz.adtmusic.ui.SheetSpec.Update)
+        }
     }
 
     // Sözler açıkken ekran kapanmasın
@@ -362,6 +403,14 @@ private fun AdtRoot(
                 composable(Routes.EQUALIZER) { EqualizerScreen() }
                 composable(Routes.WRAPPED) { WrappedScreen() }
                 composable(Routes.FOLLOWING) { FollowingScreen() }
+                composable(Routes.MOMENTS) { com.alideniz.adtmusic.ui.screens.MomentsScreen() }
+                composable(Routes.IMPORT) { com.alideniz.adtmusic.ui.screens.ImportScreen() }
+                composable(Routes.MIX, arguments = listOf(navArgument("kind") { type = NavType.StringType })) { e ->
+                    com.alideniz.adtmusic.ui.screens.MixScreen(e.arguments?.getString("kind").orEmpty(), smart = false)
+                }
+                composable(Routes.SMART, arguments = listOf(navArgument("kind") { type = NavType.StringType })) { e ->
+                    com.alideniz.adtmusic.ui.screens.MixScreen(e.arguments?.getString("kind").orEmpty(), smart = true)
+                }
                 composable(
                     Routes.COLLECTION,
                     arguments = listOf(
@@ -464,7 +513,8 @@ private fun tabOf(route: String?): String? = when (route) {
     null -> null
     Routes.HOME, Routes.SEARCH, Routes.LIBRARY -> route
     Routes.LIKED, Routes.DOWNLOADS, Routes.HISTORY, Routes.STATS, Routes.PLAYLIST,
-    Routes.FOLLOWING, Routes.WRAPPED, Routes.EQUALIZER -> Routes.LIBRARY
+    Routes.FOLLOWING, Routes.WRAPPED, Routes.EQUALIZER, Routes.MOMENTS, Routes.IMPORT, Routes.SMART -> Routes.LIBRARY
+    Routes.MIX -> Routes.HOME
     else -> null
 }
 

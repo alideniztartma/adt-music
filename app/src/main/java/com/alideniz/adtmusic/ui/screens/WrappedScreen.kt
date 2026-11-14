@@ -95,9 +95,13 @@ data class WrappedData(
 private val DAYS = listOf("Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi")
 
 fun computeWrapped(rows: List<HistoryRow>, period: WrappedPeriod): WrappedData? {
+    // Yalnızca gerçekten dinlenen süre sayılır. Bir çalma, en az 30 sn dinlendiyse
+    // (ya da süresi bilinmeyen eski bir kayıtsa) "dinlendi" kabul edilir.
+    val minutes = rows.sumOf { it.listenedMs.coerceAtLeast(0L) } / 60_000L
+    @Suppress("NAME_SHADOWING")
+    val rows = rows.filter { it.listenedMs < 0 || it.listenedMs >= 30_000L }
     if (rows.isEmpty()) return null
     val songs = rows.map { it.song.toSong() }
-    val minutes = rows.sumOf { (if (it.song.duration > 0) it.song.duration else 180L) } / 60
     val topSongs = rows.groupBy { it.song.id }
         .map { (_, list) -> list.first().song.toSong() to list.size }
         .sortedByDescending { it.second }
@@ -326,6 +330,11 @@ private fun WrappedSlide(page: Int, w: WrappedData, visible: Boolean) {
                     Txt(
                         "${w.plays} çalma · ${w.distinctSongs} farklı şarkı · ${w.distinctArtists} sanatçı",
                         AdtTheme.type.bodyStrong, color = fg.copy(alpha = 0.8f),
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Txt(
+                        "Yalnızca gerçekten dinlediğin süre sayılır; 30 saniyeden kısa dinlemeler çalma sayılmaz.",
+                        AdtTheme.type.caption, color = fg.copy(alpha = 0.6f),
                     )
                 }
                 2 -> Column(modifier = Modifier.fillMaxSize()) {

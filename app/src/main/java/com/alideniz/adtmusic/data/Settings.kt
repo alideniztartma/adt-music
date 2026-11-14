@@ -49,6 +49,10 @@ class Settings(context: Context) {
     val preloadNext = Pref("preload_next", true)
     val pauseOnDisconnect = Pref("pause_on_disconnect", true)
     val autoplay = Pref("autoplay", true)
+    /** Şarkı sonunda yumuşak geçiş süresi (saniye, 0 = kapalı). */
+    val crossfadeSec = Pref("crossfade_sec", 0)
+    val normalizeVolume = Pref("normalize_volume", false)
+    val headsetGestures = Pref("headset_gestures", true)
     val skipSilence = Pref("skip_silence", false)
     val cacheSizeMb = Pref("cache_size_mb", 1024)
     val downloadWifiOnly = Pref("download_wifi_only", false)
@@ -70,6 +74,8 @@ class Settings(context: Context) {
     val fontScale = Pref("font_scale", 1f)
     val reduceMotion = Pref("reduce_motion", false)
     val highRefreshRate = Pref("high_refresh_rate", true)
+    /** "high" (en yüksek, ör. 144 Hz) veya "low" (60 Hz) */
+    val frameRate = Pref("frame_rate", "high")
     val showFps = Pref("show_fps", false)
     /** "tint", "plain" veya "blur" */
     val playerBackground = Pref("player_background", "tint")
@@ -91,6 +97,10 @@ class Settings(context: Context) {
     /** Ses yükseltme, milibel (0..1000). */
     val volumeBoost = Pref("volume_boost", 0)
     val miniPlayerProgress = Pref("mini_player_progress", true)
+
+    // Güncelleme
+    val autoUpdateCheck = Pref("auto_update_check", true)
+    val lastUpdateCheck = Pref("last_update_check", 0L)
 
     // Ekolayzer
     val eqEnabled = Pref("eq_enabled", false)

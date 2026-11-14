@@ -147,6 +147,13 @@ class PlayerConnection(private val context: Context, private val scope: Coroutin
         c.play()
     }
 
+    /** Şarkıyı belli bir saniyeden başlatır (ör. bir anıdan). */
+    fun playAt(song: Song, positionMs: Long) = withController { c ->
+        c.setMediaItems(listOf(song.toMediaItem()), 0, positionMs.coerceAtLeast(0))
+        c.prepare()
+        c.play()
+    }
+
     /** Tek bir şarkıyı başlatır ve ardından benzer şarkılarla radyoya devam eder. */
     fun playRadio(song: Song) {
         play(listOf(song))

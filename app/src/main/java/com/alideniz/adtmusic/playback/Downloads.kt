@@ -103,6 +103,8 @@ class DownloadTracker(
                 .setData(song.title.toByteArray())
                 .build()
             DownloadService.sendAddDownload(context, AdtDownloadService::class.java, request, false)
+            // Sözleri de önceden al: internetsiz dinlerken de görünsün.
+            runCatching { context.container.lyrics.lyricsFor(song) }
         }
     }
 

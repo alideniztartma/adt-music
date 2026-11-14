@@ -107,6 +107,18 @@ fun PlayerScreen() {
     val scope = rememberCoroutineScope()
     val liked = song.id in likedIds
     val soundChanged = kotlin.math.abs(state.speed - 1f) > 0.001f || kotlin.math.abs(state.semitones) > 0.05f
+    val songMomentsAll by remember(song.id) { app.dao.momentsForSong(song.id) }.collectAsState(initial = emptyList())
+    val nowMs = System.currentTimeMillis()
+    val songMoments = songMomentsAll.filter { it.revealAt == null || it.revealed || it.revealAt <= nowMs }
+    // Çalarken bir anının saniyesine gelince notunu kısaca göster.
+    val shownMoments = remember(song.id) { mutableSetOf<Long>() }
+    LaunchedEffect(progress.position / 1000, song.id) {
+        val pos = progress.position
+        songMoments.firstOrNull { it.id !in shownMoments && pos in it.positionMs..(it.positionMs + 1500) }?.let { m ->
+            shownMoments += m.id
+            app.toast("✦ ${moodOf(m.mood).label}" + if (m.note.isNotBlank()) " · ${m.note}" else "")
+        }
+    }
     val bgStyle by app.settings.playerBackground.flow.collectAsState()
     val bg by animateColorAsState(
         if (bgStyle == "plain") c.paper else c.tint(if (c.isDark) 0.14f else 0.08f),
@@ -237,6 +249,10 @@ fun PlayerScreen() {
 
             // ---- ilerleme
             var dragPreview by remember { mutableStateOf<Float?>(null) }
+            MomentMarkers(songMoments, progress.duration) { m ->
+                app.player.seekTo(m.positionMs)
+                app.toast("✦ ${moodOf(m.mood).label}" + if (m.note.isNotBlank()) " · ${m.note}" else "")
+            }
             SeekBar(
                 fraction = progress.fraction,
                 bufferedFraction = if (progress.duration > 0) progress.buffered.toFloat() / progress.duration else 0f,
@@ -305,25 +321,26 @@ fun PlayerScreen() {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconBtn(AdtIcons.Shuffle, "Karıştır", { app.player.toggleShuffle() }, tint = if (state.shuffle) c.accent else c.ink, iconSize = 20.dp)
+                IconBtn(AdtIcons.Shuffle, "Karıştır", { app.player.toggleShuffle() }, tint = if (state.shuffle) c.accent else c.ink, iconSize = 20.dp, size = 40.dp)
                 IconBtn(
                     if (state.repeatMode == Player.REPEAT_MODE_ONE) AdtIcons.RepeatOne else AdtIcons.Repeat, "Tekrarla",
                     { app.player.cycleRepeat() },
-                    tint = if (state.repeatMode != Player.REPEAT_MODE_OFF) c.accent else c.ink, iconSize = 20.dp,
+                    tint = if (state.repeatMode != Player.REPEAT_MODE_OFF) c.accent else c.ink, iconSize = 20.dp, size = 40.dp,
                 )
-                IconBtn(AdtIcons.Lyrics, "Sözler", { ui.lyricsMode = !ui.lyricsMode }, tint = if (ui.lyricsMode) c.accent else c.ink, iconSize = 20.dp)
-                IconBtn(AdtIcons.Queue, "Sıra", { ui.show(SheetSpec.Queue) }, iconSize = 20.dp)
+                IconBtn(AdtIcons.Lyrics, "Sözler", { ui.lyricsMode = !ui.lyricsMode }, tint = if (ui.lyricsMode) c.accent else c.ink, iconSize = 20.dp, size = 40.dp)
+                IconBtn(AdtIcons.Queue, "Sıra", { ui.show(SheetSpec.Queue) }, iconSize = 20.dp, size = 40.dp)
                 DownloadButton(dl, {
                     when (dl?.state) {
                         DlState.DONE -> app.toast("Bu şarkı indirildi ✓")
                         DlState.DOWNLOADING, DlState.QUEUED -> app.toast("İndiriliyor… %${((dl?.progress ?: 0f) * 100).toInt()}")
                         else -> { app.downloads.download(song); app.toast("İndirme başladı") }
                     }
-                }, iconSize = 20.dp)
+                }, iconSize = 20.dp, size = 40.dp)
+                IconBtn(AdtIcons.Moment, "Anı oluştur", { ui.show(SheetSpec.AddMoment(song, progress.position)) }, tint = if (songMoments.isNotEmpty()) c.accent else c.ink, iconSize = 20.dp, size = 40.dp)
                 Box(contentAlignment = Alignment.Center) {
-                    IconBtn(AdtIcons.Speed, "Hız ve ton", { ui.show(SheetSpec.Speed) }, tint = if (soundChanged) c.accent else c.ink, iconSize = 20.dp)
+                    IconBtn(AdtIcons.Speed, "Hız ve ton", { ui.show(SheetSpec.Speed) }, tint = if (soundChanged) c.accent else c.ink, iconSize = 20.dp, size = 40.dp)
                 }
-                IconBtn(AdtIcons.Moon, "Uyku zamanlayıcısı", { ui.show(SheetSpec.SleepTimer) }, tint = if (sleep != null) c.accent else c.ink, iconSize = 20.dp)
+                IconBtn(AdtIcons.Moon, "Uyku zamanlayıcısı", { ui.show(SheetSpec.SleepTimer) }, tint = if (sleep != null) c.accent else c.ink, iconSize = 20.dp, size = 40.dp)
             }
             Spacer(Modifier.height(12.dp))
         }

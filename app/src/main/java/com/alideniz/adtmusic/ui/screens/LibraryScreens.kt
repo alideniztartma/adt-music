@@ -66,6 +66,7 @@ fun LibraryScreen() {
     val totalPlays by remember { app.dao.totalPlays() }.collectAsState(initial = 0)
     val doneCount = downloads.count { it.value.state == DlState.DONE }
     val followed by app.followed.collectAsState()
+    val momentCount by remember { app.dao.momentCount() }.collectAsState(initial = 0)
 
     fun newPlaylist() = ui.show(
         SheetSpec.Input("Yeni çalma listesi", "", "Oluştur") { name ->
@@ -91,9 +92,13 @@ fun LibraryScreen() {
             LibraryRow(AdtIcons.Download, "İndirilenler", doneCount.toString()) { ui.navigate(Routes.DOWNLOADS) }
             LibraryRow(AdtIcons.History, "Geçmiş", totalPlays.toString()) { ui.navigate(Routes.HISTORY) }
             LibraryRow(AdtIcons.Following, "Takip ettiğin sanatçılar", followed.size.toString()) { ui.navigate(Routes.FOLLOWING) }
+            LibraryRow(AdtIcons.Moment, "Anıların", momentCount.toString()) { ui.navigate(Routes.MOMENTS) }
             LibraryRow(AdtIcons.Wrapped, "ADT Wrapped", "") { ui.navigate(Routes.WRAPPED) }
+            LibraryRow(AdtIcons.Import, "Spotify / YouTube listesi aktar", "") { ui.navigate(Routes.IMPORT) }
             LibraryRow(AdtIcons.Stats, "Dinleme istatistiklerin", "") { ui.navigate(Routes.STATS) }
             LibraryRow(AdtIcons.Equalizer, "Ekolayzer", "") { ui.navigate(Routes.EQUALIZER) }
+            Spacer(Modifier.height(28.dp))
+            SmartShelf()
             Spacer(Modifier.height(32.dp))
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 20.dp),
@@ -159,7 +164,7 @@ private fun LibraryRow(icon: ImageVector, label: String, count: String, onClick:
 }
 
 @Composable
-private fun SongListScreen(
+fun SongListScreen(
     title: String,
     subtitle: String?,
     songs: List<Song>,

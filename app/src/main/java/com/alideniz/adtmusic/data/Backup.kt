@@ -54,6 +54,16 @@ object Backup {
                 put(JSONObject().apply { put("name", a.name); put("thumbnail", a.thumbnail ?: ""); put("at", a.followedAt) })
             }
         })
+        root.put("moments", JSONArray().apply {
+            dao.momentsOnce().forEach { r ->
+                val m = r.moment
+                put(JSONObject().apply {
+                    put("song", r.song().json())
+                    put("pos", m.positionMs); put("mood", m.mood); put("note", m.note)
+                    put("at", m.createdAt); put("revealAt", m.revealAt ?: 0L); put("revealed", m.revealed)
+                })
+            }
+        })
         root.toString(2)
     }
 
@@ -84,6 +94,25 @@ object Backup {
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
                 dao.follow(FollowedArtistEntity(o.getString("name"), o.optString("thumbnail").ifBlank { null }, o.optLong("at", System.currentTimeMillis())))
+                count++
+            }
+        }
+        root.optJSONArray("moments")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val song = o.getJSONObject("song").song()
+                dao.ensureSong(song)
+                dao.insertMoment(
+                    com.alideniz.adtmusic.data.db.MomentEntity(
+                        songId = song.id,
+                        positionMs = o.optLong("pos"),
+                        mood = o.optString("mood", "nostalgic"),
+                        note = o.optString("note"),
+                        createdAt = o.optLong("at", System.currentTimeMillis()),
+                        revealAt = o.optLong("revealAt", 0L).takeIf { it > 0 },
+                        revealed = o.optBoolean("revealed", false),
+                    )
+                )
                 count++
             }
         }

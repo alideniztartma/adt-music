@@ -3,7 +3,9 @@
 package com.alideniz.adtmusic.playback
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
+import android.view.KeyEvent
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.media3.common.AudioAttributes
@@ -14,7 +16,11 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.Util
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.CommandButton
@@ -61,12 +67,61 @@ class PlaybackService : MediaLibraryService() {
     private val searchResults = mutableMapOf<String, List<Song>>()
 
     private val likeCommand = SessionCommand(CMD_LIKE, Bundle.EMPTY)
+    private val normalizer = Normalizer()
+
+    // ---- yumuşak geçiş (fade)
+    private var fadeIn = 1f
+    private var fadeOut = 1f
+
+    /**
+     * Şarkı biterken sesi yavaşça kısar, yeni şarkıda yavaşça açar.
+     * (ExoPlayer tek oynatıcıyla üst üste bindirme yapamadığı için ardışık fade.)
+     */
+    private fun startFadeLoop() {
+        scope.launch {
+            while (true) {
+                val sec = c.settings.crossfadeSec.value
+                if (sec > 0 && player.isPlaying) {
+                    val fadeMs = sec * 1000L
+                    val dur = player.duration
+                    val pos = player.currentPosition
+                    fadeOut = if (dur > fadeMs * 2 && player.hasNextMediaItem()) {
+                        ((dur - pos).toFloat() / fadeMs).coerceIn(0f, 1f)
+                    } else 1f
+                    if (fadeIn < 1f) fadeIn = (fadeIn + 50f / fadeMs).coerceAtMost(1f)
+                    player.volume = (fadeIn * fadeOut).coerceIn(0f, 1f)
+                } else if (sec == 0 && (fadeIn < 1f || fadeOut < 1f)) {
+                    fadeIn = 1f; fadeOut = 1f
+                    player.volume = 1f
+                }
+                kotlinx.coroutines.delay(50)
+            }
+        }
+    }
+
+    // ---- kulaklık hareketleri
+    private var tapCount = 0
+    private var tapJob: kotlinx.coroutines.Job? = null
+    private var longPressHandled = false
 
     override fun onCreate() {
         super.onCreate()
         val audioSessionId = Util.generateAudioSessionIdV21(this)
 
-        player = ExoPlayer.Builder(this)
+        val renderers = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean,
+            ): AudioSink = DefaultAudioSink.Builder(context)
+                .setEnableFloatOutput(false)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setAudioProcessors(arrayOf<AudioProcessor>(normalizer))
+                .build()
+        }
+        normalizer.enabled = c.settings.normalizeVolume.value
+
+        player = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(c.media.playerDataSourceFactory()))
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -115,6 +170,8 @@ class PlaybackService : MediaLibraryService() {
         )
 
         scope.launch { c.settings.skipSilence.flow.collect { player.skipSilenceEnabled = it } }
+        scope.launch { c.settings.normalizeVolume.flow.collect { normalizer.enabled = it } }
+        startFadeLoop()
         scope.launch {
             c.dao.likedIds().collect {
                 likedIds = it.toSet()
@@ -148,6 +205,13 @@ class PlaybackService : MediaLibraryService() {
 
     private val listener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            if (c.settings.crossfadeSec.value > 0 && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                fadeIn = 0f
+                player.volume = 0f
+            } else {
+                fadeIn = 1f
+            }
+            fadeOut = 1f
             flushPlayTime()
             retriedFor = null
             if (mediaItem == null) return
@@ -193,7 +257,12 @@ class PlaybackService : MediaLibraryService() {
         if (playStartedAt <= 0) return
         val ms = SystemClock.elapsedRealtime() - playStartedAt
         playStartedAt = 0
-        if (ms in 1..6 * 3600_000L) scope.launch { runCatching { c.dao.addPlayTime(id, ms) } }
+        if (ms in 1..6 * 3600_000L) scope.launch {
+            runCatching {
+                c.dao.addPlayTime(id, ms)
+                if (!c.settings.pauseHistory.value) c.dao.addListened(id, ms)
+            }
+        }
     }
 
     private fun handleError(error: PlaybackException) {
@@ -277,6 +346,17 @@ class PlaybackService : MediaLibraryService() {
         c.settings.lastPosition.set(player.currentPosition.coerceAtLeast(0))
     }
 
+    private fun toggleLikeCurrent() {
+        val item = player.currentMediaItem ?: return
+        val song = item.toSong()
+        scope.launch {
+            c.dao.ensureSong(song)
+            val liked = song.id in likedIds
+            c.dao.setLiked(song.id, if (liked) null else System.currentTimeMillis())
+            c.toast(if (liked) "Beğenilenlerden çıkarıldı" else "Beğenildi ♥")
+        }
+    }
+
     private fun updateNotificationButtons() {
         if (!::session.isInitialized) return
         val id = player.currentMediaItem?.mediaId
@@ -306,6 +386,49 @@ class PlaybackService : MediaLibraryService() {
                 .build()
         }
 
+        /**
+         * Kulaklık: 1 dokunuş çal/duraklat, 2 dokunuş sonraki, 3 dokunuş önceki,
+         * uzun basış beğen.
+         */
+        override fun onMediaButtonEvent(
+            session: MediaSession,
+            controllerInfo: MediaSession.ControllerInfo,
+            intent: Intent,
+        ): Boolean {
+            if (!c.settings.headsetGestures.value) return false
+            @Suppress("DEPRECATION")
+            val event = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) ?: return false
+            val code = event.keyCode
+            if (code != KeyEvent.KEYCODE_HEADSETHOOK && code != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) return false
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> {
+                    if (event.repeatCount >= 2 && !longPressHandled) {
+                        longPressHandled = true
+                        tapJob?.cancel(); tapCount = 0
+                        toggleLikeCurrent()
+                    }
+                }
+                KeyEvent.ACTION_UP -> {
+                    if (longPressHandled) {
+                        longPressHandled = false
+                        return true
+                    }
+                    tapCount++
+                    tapJob?.cancel()
+                    tapJob = scope.launch {
+                        kotlinx.coroutines.delay(420)
+                        when (tapCount) {
+                            1 -> if (player.isPlaying) player.pause() else { if (player.playbackState == Player.STATE_IDLE) player.prepare(); player.play() }
+                            2 -> player.seekToNextMediaItem()
+                            else -> player.seekToPreviousMediaItem()
+                        }
+                        tapCount = 0
+                    }
+                }
+            }
+            return true
+        }
+
         override fun onPostConnect(session: MediaSession, controller: MediaSession.ControllerInfo) {
             updateNotificationButtons()
         }
@@ -317,15 +440,7 @@ class PlaybackService : MediaLibraryService() {
             args: Bundle,
         ): ListenableFuture<SessionResult> {
             if (customCommand.customAction == CMD_LIKE) {
-                val item = player.currentMediaItem
-                if (item != null) {
-                    val song = item.toSong()
-                    scope.launch {
-                        c.dao.ensureSong(song)
-                        val liked = song.id in likedIds
-                        c.dao.setLiked(song.id, if (liked) null else System.currentTimeMillis())
-                    }
-                }
+                toggleLikeCurrent()
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))

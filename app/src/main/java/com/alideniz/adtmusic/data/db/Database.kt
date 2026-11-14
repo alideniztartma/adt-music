@@ -1,6 +1,7 @@
 package com.alideniz.adtmusic.data.db
 
 import android.content.Context
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Embedded
@@ -62,7 +63,33 @@ data class HistoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val songId: String,
     val playedAt: Long,
+    /** Gerçekten dinlenen süre. -1: eski kayıt (süre bilinmiyor). */
+    @ColumnInfo(defaultValue = "-1") val listenedMs: Long = 0,
 )
+
+/** Music Moments: bir şarkının belli bir anına bağlı anı. */
+@Entity(tableName = "moments")
+data class MomentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val songId: String,
+    val positionMs: Long,
+    val mood: String,
+    val note: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    /** Zaman kapsülü: bu tarihte yeniden karşına çıkar. */
+    val revealAt: Long? = null,
+    val revealed: Boolean = false,
+)
+
+data class MomentRow(
+    @Embedded val moment: MomentEntity,
+    val songTitle: String?,
+    val songArtist: String?,
+    val songThumb: String?,
+    val songDuration: Long?,
+) {
+    fun song(): Song = Song(moment.songId, songTitle.orEmpty(), songArtist.orEmpty(), songThumb, songDuration ?: -1)
+}
 
 @Entity(tableName = "search_history")
 data class SearchHistoryEntity(
@@ -96,6 +123,7 @@ data class PlaylistSummary(
 data class HistoryRow(
     @Embedded val song: SongEntity,
     val playedAt: Long,
+    val listenedMs: Long = -1,
 )
 
 data class ArtistStat(val artist: String, val plays: Int)
@@ -147,7 +175,7 @@ abstract class AdtDao {
     @Insert
     abstract suspend fun insertHistory(h: HistoryEntity)
 
-    @Query("SELECT s.*, h.playedAt AS playedAt FROM history h INNER JOIN songs s ON s.id = h.songId ORDER BY h.playedAt DESC LIMIT 500")
+    @Query("SELECT s.*, h.playedAt AS playedAt, h.listenedMs AS listenedMs FROM history h INNER JOIN songs s ON s.id = h.songId ORDER BY h.playedAt DESC LIMIT 500")
     abstract fun history(): Flow<List<HistoryRow>>
 
     @Query("DELETE FROM history")
@@ -272,9 +300,41 @@ abstract class AdtDao {
     @Query("SELECT name FROM followed_artists")
     abstract fun followedNames(): Flow<List<String>>
 
+    /** Son dinleme kaydına gerçekten dinlenen süreyi ekler. */
+    @Query("UPDATE history SET listenedMs = MAX(listenedMs, 0) + :ms WHERE id = (SELECT id FROM history WHERE songId = :songId ORDER BY playedAt DESC LIMIT 1)")
+    abstract suspend fun addListened(songId: String, ms: Long)
+
+    // ---- Music Moments
+    @Insert
+    abstract suspend fun insertMoment(m: MomentEntity): Long
+
+    @Query("DELETE FROM moments WHERE id = :id")
+    abstract suspend fun deleteMoment(id: Long)
+
+    @Query("SELECT m.*, s.title AS songTitle, s.artist AS songArtist, s.thumbnail AS songThumb, s.duration AS songDuration FROM moments m LEFT JOIN songs s ON s.id = m.songId ORDER BY m.createdAt DESC")
+    abstract fun moments(): Flow<List<MomentRow>>
+
+    @Query("SELECT * FROM moments WHERE songId = :songId ORDER BY positionMs")
+    abstract fun momentsForSong(songId: String): Flow<List<MomentEntity>>
+
+    @Query("SELECT m.*, s.title AS songTitle, s.artist AS songArtist, s.thumbnail AS songThumb, s.duration AS songDuration FROM moments m LEFT JOIN songs s ON s.id = m.songId WHERE m.revealAt IS NOT NULL AND m.revealAt <= :now AND m.revealed = 0 ORDER BY m.revealAt")
+    abstract suspend fun dueCapsules(now: Long): List<MomentRow>
+
+    @Query("UPDATE moments SET revealed = 1 WHERE id = :id")
+    abstract suspend fun markRevealed(id: Long)
+
+    @Query("SELECT m.*, s.title AS songTitle, s.artist AS songArtist, s.thumbnail AS songThumb, s.duration AS songDuration FROM moments m LEFT JOIN songs s ON s.id = m.songId")
+    abstract suspend fun momentsOnce(): List<MomentRow>
+
+    @Query("SELECT COUNT(*) FROM moments")
+    abstract fun momentCount(): Flow<Int>
+
     // ---- Wrapped
-    @Query("SELECT s.*, h.playedAt AS playedAt FROM history h INNER JOIN songs s ON s.id = h.songId WHERE h.playedAt >= :since ORDER BY h.playedAt DESC")
+    @Query("SELECT s.*, h.playedAt AS playedAt, h.listenedMs AS listenedMs FROM history h INNER JOIN songs s ON s.id = h.songId WHERE h.playedAt >= :since ORDER BY h.playedAt DESC")
     abstract suspend fun historySince(since: Long): List<HistoryRow>
+
+    @Query("SELECT * FROM songs")
+    abstract suspend fun allSongsOnce(): List<SongEntity>
 
     // ---- yedekleme
     @Query("SELECT * FROM songs WHERE likedAt IS NOT NULL")
@@ -298,9 +358,9 @@ abstract class AdtDao {
     entities = [
         SongEntity::class, PlaylistEntity::class, PlaylistSongEntity::class,
         HistoryEntity::class, SearchHistoryEntity::class, LyricsEntity::class,
-        FollowedArtistEntity::class,
+        FollowedArtistEntity::class, MomentEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AdtDatabase : RoomDatabase() {
@@ -309,9 +369,19 @@ abstract class AdtDatabase : RoomDatabase() {
     companion object {
         fun create(context: Context): AdtDatabase =
             Room.databaseBuilder(context, AdtDatabase::class.java, "adt_music.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
+
+        /** 1.2: gerçek dinleme süresi ve Music Moments. Mevcut veriler korunur. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `history` ADD COLUMN `listenedMs` INTEGER NOT NULL DEFAULT -1")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `moments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `songId` TEXT NOT NULL, `positionMs` INTEGER NOT NULL, `mood` TEXT NOT NULL, `note` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `revealAt` INTEGER, `revealed` INTEGER NOT NULL)"
+                )
+            }
+        }
 
         /** 1.1: takip edilen sanatçılar tablosu. Mevcut veriler korunur. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
