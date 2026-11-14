@@ -59,13 +59,14 @@ class Watcher(context: Context, params: WorkerParameters) : CoroutineWorker(cont
         val artists = app.dao.followedArtistsOnce().take(25)
         var notified = 0
         for (artist in artists) {
-            val url = urls.optString(artist.name).ifBlank {
+            var url = urls.optString(artist.name)
+            if (url.isBlank()) {
                 val found = runCatching {
                     app.youtube.search(artist.name, SearchFilter.ARTISTS).items
                         .firstNotNullOfOrNull { (it as? SearchItem.ArtistItem)?.ref?.url }
                 }.getOrNull() ?: continue
                 urls.put(artist.name, found)
-                found
+                url = found
             }
             val latest = runCatching {
                 val info = ChannelInfo.getInfo(yt, url)
