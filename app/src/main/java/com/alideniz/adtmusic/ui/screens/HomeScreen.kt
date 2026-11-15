@@ -125,6 +125,7 @@ fun HomeScreen() {
     val showAlbums by app.settings.homeShowAlbums.flow.collectAsState()
     val totalPlays by remember { app.dao.totalPlays() }.collectAsState(initial = 0)
     val incognito by app.settings.pauseHistory.flow.collectAsState()
+    val guard by app.guard.state.collectAsState()
     val insights by androidx.compose.runtime.produceState<Pair<com.alideniz.adtmusic.data.Streak, com.alideniz.adtmusic.data.Weekly>?>(null, totalPlays) {
         val rows = app.dao.historySince(System.currentTimeMillis() - 400L * 86_400_000L)
         value = com.alideniz.adtmusic.data.Insights.streak(rows) to com.alideniz.adtmusic.data.Insights.weekly(rows)
@@ -161,6 +162,25 @@ fun HomeScreen() {
                 Spacer(Modifier.weight(1f))
                 IconBtn(AdtIcons.Refresh, "Yenile", { vm.load() })
                 IconBtn(AdtIcons.Settings, "Ayarlar", { ui.navigate(Routes.SETTINGS) })
+            }
+            if (guard.limited) {
+                Row(
+                    Modifier
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .fillMaxWidth()
+                        .background(c.accent)
+                        .press(label = "Bağlantı ayrıntıları") { ui.navigate(Routes.SETTINGS) }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Txt("YouTube kısa süreliğine sınırladı", AdtTheme.type.bodyStrong, color = c.onAccent)
+                        Txt(
+                            "Birkaç dakika içinde kendiliğinden düzelir. İndirilenler çalmaya devam eder.",
+                            AdtTheme.type.caption, color = c.onAccent.copy(alpha = 0.85f),
+                        )
+                    }
+                }
             }
             Box(Modifier.padding(horizontal = 20.dp).padding(top = 18.dp, bottom = 6.dp)) {
                 Txt("${greeting()}.", AdtTheme.type.display)

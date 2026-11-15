@@ -279,7 +279,7 @@ class PlaybackService : MediaLibraryService() {
         val id = player.currentMediaItem?.mediaId
         val position = player.currentPosition
         // Akış adresinin süresi dolmuş olabilir: bir kez yeniden çözmeyi dene.
-        if (id != null && retriedFor != id) {
+        if (id != null && retriedFor != id && !com.alideniz.adtmusic.data.StreamGuard.isLimit(error)) {
             retriedFor = id
             c.media.invalidate(id)
             player.prepare()
@@ -292,6 +292,22 @@ class PlaybackService : MediaLibraryService() {
             .firstOrNull()
         val offline = error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
             error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+        // YouTube sınırladıysa (bot doğrulaması, 429 ya da yeniden çözümden sonra da 403):
+        // sıradaki şarkılara geçip daha çok istek atmak yerine dur, bekle, sonra kendiliğinden dene.
+        val limited = com.alideniz.adtmusic.data.StreamGuard.isLimit(error) || http?.responseCode == 403
+        if (limited && !offline) {
+            if (http?.responseCode == 403 && !com.alideniz.adtmusic.data.StreamGuard.isLimit(error)) {
+                c.guard.reportLimited("Akış sunucusu 403 verdi")
+                c.youtube.resetSessionOnly()
+            }
+            val waitMs = (c.guard.state.value.limitedUntil - System.currentTimeMillis()).coerceAtLeast(30_000)
+            c.toast(
+                "YouTube bu ağı kısa süreliğine sınırladı. ${(waitMs / 60_000).coerceAtLeast(1)} dk sonra kendiliğinden " +
+                    "yeniden denenecek. İndirilenler çalmaya devam eder."
+            )
+            scheduleLimitRetry(id, position, waitMs)
+            return
+        }
         c.toast(
             when {
                 offline -> "İnternet bağlantısı yok. İndirdiğin şarkıları dinleyebilirsin."
@@ -306,9 +322,26 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    private var limitRetryJob: kotlinx.coroutines.Job? = null
+
+    /** Sınırlama bitince aynı şarkıyı kaldığı yerden bir kez daha dener. */
+    private fun scheduleLimitRetry(id: String?, position: Long, waitMs: Long) {
+        limitRetryJob?.cancel()
+        limitRetryJob = scope.launch {
+            kotlinx.coroutines.delay(waitMs)
+            if (player.currentMediaItem?.mediaId != id || player.isPlaying) return@launch
+            retriedFor = null
+            c.media.invalidate(id ?: return@launch)
+            player.prepare()
+            player.seekTo(position)
+            player.play()
+        }
+    }
+
     /** Sıra bitmek üzereyken çalan şarkıya benzeyenleri ekler (otomatik radyo). */
     private fun maybeExtendWithRadio(force: Boolean = false) {
         if (!c.settings.autoplay.value || radioLoading) return
+        if (!c.guard.backgroundAllowed) return
         if (player.repeatMode != Player.REPEAT_MODE_OFF || player.mediaItemCount == 0) return
         val remaining = player.mediaItemCount - 1 - player.currentMediaItemIndex
         if (!force && remaining > 2) return
@@ -338,12 +371,11 @@ class PlaybackService : MediaLibraryService() {
         val timeline = player.currentTimeline
         if (timeline.isEmpty) return
         var index = player.currentMediaItemIndex
-        repeat(2) { step ->
-            index = timeline.getNextWindowIndex(index, player.repeatMode.let { if (it == Player.REPEAT_MODE_ONE) Player.REPEAT_MODE_OFF else it }, player.shuffleModeEnabled)
-            if (index == C.INDEX_UNSET) return
-            val id = player.getMediaItemAt(index).mediaId
-            if (step == 0) c.media.prefetch(id) else c.media.warmUrl(id)
-        }
+        // Yalnızca sıradaki tek şarkı: YouTube'a giden istekleri az tutar.
+        if (!c.guard.backgroundAllowed) return
+        index = timeline.getNextWindowIndex(index, player.repeatMode.let { if (it == Player.REPEAT_MODE_ONE) Player.REPEAT_MODE_OFF else it }, player.shuffleModeEnabled)
+        if (index == C.INDEX_UNSET) return
+        c.media.prefetch(player.getMediaItemAt(index).mediaId)
     }
 
     private fun saveQueue() {

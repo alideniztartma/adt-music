@@ -53,6 +53,8 @@ import com.alideniz.adtmusic.ui.LocalBottomInset
 import com.alideniz.adtmusic.ui.Routes
 import com.alideniz.adtmusic.ui.SheetSpec
 import com.alideniz.adtmusic.ui.components.AdtSlider
+import com.alideniz.adtmusic.ui.components.Btn
+import com.alideniz.adtmusic.ui.components.BtnStyle
 import com.alideniz.adtmusic.ui.components.Chip
 import com.alideniz.adtmusic.ui.components.Line
 import com.alideniz.adtmusic.ui.components.MessageBlock
@@ -186,6 +188,55 @@ private fun DataUsageCard(mobile: Long, wifi: Long, onReset: () -> Unit) {
         }
         Spacer(Modifier.height(6.dp))
         Txt("Akış ve indirmeler dahil. Ay başında kendiliğinden sıfırlanır.", AdtTheme.type.caption, color = c.muted)
+    }
+}
+
+/** YouTube bağlantı durumu: sınırlama varsa ne zaman biteceği ve elle yeniden bağlanma. */
+@Composable
+private fun ConnectionCard() {
+    val app = androidx.compose.ui.platform.LocalContext.current.container
+    val c = AdtTheme.colors
+    val g by app.guard.state.collectAsState()
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    androidx.compose.runtime.LaunchedEffect(g.limitedUntil) {
+        while (System.currentTimeMillis() < g.limitedUntil) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(1000) }
+        now = System.currentTimeMillis()
+    }
+    val limited = now < g.limitedUntil
+    Column(
+        Modifier.padding(horizontal = 20.dp, vertical = 8.dp).fillMaxWidth()
+            .border(1.dp, if (limited) c.accent else c.line).padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(if (limited) c.accent else Color(0xFF18B36B)))
+            Spacer(Modifier.width(10.dp))
+            Txt(
+                if (limited) "YouTube geçici olarak sınırladı" else "YouTube bağlantısı normal",
+                AdtTheme.type.bodyStrong, modifier = Modifier.weight(1f),
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        val left = ((g.limitedUntil - now) / 1000).coerceAtLeast(0)
+        Txt(
+            if (limited) "Arka plan istekleri durduruldu. Yaklaşık ${left / 60} dk ${left % 60} sn sonra kendiliğinden yeniden denenecek."
+            else "Uygulama istekleri az tutar ve aynı oturumu kullanır; sınırlama görülürse kendiliğinden geri çekilir.",
+            AdtTheme.type.caption, color = c.muted,
+        )
+        g.lastError?.let {
+            Spacer(Modifier.height(4.dp))
+            Txt("Son sorun: $it", AdtTheme.type.caption, color = c.faint)
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Btn(
+                "Yeniden bağlan",
+                {
+                    app.youtube.resetSession()
+                    app.toast("Yeni YouTube oturumu açıldı")
+                },
+                style = BtnStyle.OUTLINE, height = 40.dp,
+            )
+        }
     }
 }
 
@@ -509,6 +560,7 @@ fun SettingsScreen() {
             if (mobileQuality == "same" && dataSaver) "low" else mobileQuality,
         ) { s.mobileQuality.set(it); s.mobileDataSaver.set(false) }
         DataUsageCard(usage.mobileBytes, usage.wifiBytes) { app.dataUsage.reset(); app.toast("Sayaç sıfırlandı") }
+        ConnectionCard()
         SwitchRow(
             "Bluetooth bağlanınca çal",
             "Kulaklık, hoparlör ya da araba bağlanınca kaldığın yerden başlar.",

@@ -125,6 +125,7 @@ class MediaStack(
      * Böylece şarkıya geçildiğinde "yükleniyor" beklemesi olmaz.
      */
     fun prefetch(id: String, bytes: Long = PREFETCH_BYTES) {
+        if (!youtube.guard.backgroundAllowed) return
         if (!prefetching.add(id)) return
         prefetchScope.launch {
             try {
@@ -163,6 +164,7 @@ class MediaStack(
 
     /** Yalnızca akış adresini önceden çözer (veri indirmez). */
     fun warmUrl(id: String) {
+        if (!youtube.guard.backgroundAllowed) return
         prefetchScope.launch {
             runCatching {
                 if (resolved[id] == null) resolved[id] = youtube.resolveBlocking(id, effectiveQuality())

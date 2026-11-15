@@ -67,7 +67,10 @@ data class SearchPage(val items: List<SearchItem>, val cursor: SearchCursor?, va
  * YouTube Music kataloğuna erişen tek kapı. Tüm çağrılar arka planda (IO) çalışır.
  * Resmî bir API değildir; NewPipeExtractor üzerinden herkese açık sayfalar okunur.
  */
-class YouTubeRepository {
+class YouTubeRepository(
+    private val fast: FastResolver? = null,
+    val guard: StreamGuard = StreamGuard(),
+) {
 
     private val yt get() = ServiceList.YouTube
     private val streamCache = ConcurrentHashMap<String, Pair<StreamInfo, Long>>()
@@ -270,7 +273,39 @@ class YouTubeRepository {
      * çağrılır, bu yüzden engelleyici (blocking) çalışır.
      */
     fun resolveBlocking(id: String, quality: String): ResolvedStream {
-        val info = streamInfoBlocking(id)
+        // 1) Hafif yol: tek istek, aynı oturum
+        if (fast != null) {
+            try {
+                val r = fast.resolve(id, quality)
+                if (r != null) {
+                    guard.reportOk()
+                    return r
+                }
+            } catch (e: YouTubeLimitedException) {
+                guard.reportLimited(e.message ?: "YouTube sınırladı")
+                throw e
+            } catch (e: IllegalStateException) {
+                throw e
+            } catch (e: Exception) {
+                if (StreamGuard.isLimit(e)) {
+                    guard.reportLimited(e.message ?: "YouTube sınırladı")
+                    throw YouTubeLimitedException("YouTube sınırladı", e)
+                }
+                // beklenmedik hata: tam çıkarıma düş
+            }
+        }
+        // 2) Tam çıkarım (NewPipe)
+        val info = try {
+            streamInfoBlocking(id)
+        } catch (e: Exception) {
+            if (StreamGuard.isLimit(e)) {
+                fast?.resetSession()
+                guard.reportLimited(e.message ?: "YouTube sınırladı")
+                throw YouTubeLimitedException("YouTube sınırladı", e)
+            }
+            throw e
+        }
+        guard.reportOk()
         val candidates = info.audioStreams
             .filter { it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP && it.isUrl }
             .ifEmpty { info.audioStreams.filter { it.isUrl } }
@@ -295,13 +330,25 @@ class YouTubeRepository {
         synchronized(lock) {
             streamCache[id]?.let { if (it.second > System.currentTimeMillis()) return it.first }
             val info = StreamInfo.getInfo(yt, "https://www.youtube.com/watch?v=$id")
-            streamCache[id] = info to (System.currentTimeMillis() + 60 * 60 * 1000L)
+            streamCache[id] = info to (System.currentTimeMillis() + 3 * 60 * 60 * 1000L)
             return info
         }
     }
 
     fun invalidateStream(id: String) {
         streamCache.remove(id)
+    }
+
+    /** Yalnızca oturumu yenile (bekleme süresine dokunma). */
+    fun resetSessionOnly() {
+        fast?.resetSession()
+    }
+
+    /** Yeni bir YouTube oturumu aç (kullanıcı "yeniden bağlan" dediğinde). */
+    fun resetSession() {
+        fast?.resetSession()
+        streamCache.clear()
+        guard.clearWait()
     }
 
     private fun pickStream(list: List<AudioStream>, quality: String): AudioStream? {

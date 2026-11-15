@@ -45,6 +45,8 @@ class Watcher(context: Context, params: WorkerParameters) : CoroutineWorker(cont
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val app = applicationContext.container
+        // YouTube şu an sınırlıyorsa hiç istek atma; bir sonraki turda dene.
+        if (!app.guard.backgroundAllowed) return@withContext Result.success()
         runCatching { if (app.settings.releaseNotifications.value) checkReleases() }
         runCatching { if (app.settings.weeklyNotification.value) maybeWeekly() }
         Result.success()
@@ -56,9 +58,17 @@ class Watcher(context: Context, params: WorkerParameters) : CoroutineWorker(cont
         val urls = JSONObject(settings.artistUrls.value)
         val seen = JSONObject(settings.artistLastSeen.value)
         val yt = ServiceList.YouTube
-        val artists = app.dao.followedArtistsOnce().take(25)
+        // Her turda en fazla 6 sanatçı (sırayla dönerek), aralarında kısa bekleme:
+        // YouTube'a kısa sürede çok istek gitmesin.
+        val all = app.dao.followedArtistsOnce()
+        if (all.isEmpty()) return
+        val start = (settings.watcherCursor.value % all.size).coerceAtLeast(0)
+        val artists = (all.drop(start) + all.take(start)).take(6)
+        settings.watcherCursor.set((start + artists.size) % all.size)
         var notified = 0
         for (artist in artists) {
+            if (!app.guard.backgroundAllowed) break
+            kotlinx.coroutines.delay(2_500)
             var url = urls.optString(artist.name)
             if (url.isBlank()) {
                 val found = runCatching {
@@ -74,6 +84,8 @@ class Watcher(context: Context, params: WorkerParameters) : CoroutineWorker(cont
                     ?: info.tabs.firstOrNull { it.contentFilters.contains(ChannelTabs.TRACKS) }
                     ?: return@runCatching emptyList<StreamInfoItem>()
                 ChannelTabInfo.getInfo(yt, tab).relatedItems.filterIsInstance<StreamInfoItem>()
+            }.onFailure {
+                if (com.alideniz.adtmusic.data.StreamGuard.isLimit(it)) app.guard.reportLimited("Bildirim taraması sınırlandı")
             }.getOrDefault(emptyList()).take(6)
             if (latest.isEmpty()) continue
             val firstId = YouTubeRepository.videoIdOf(latest.first().url) ?: continue

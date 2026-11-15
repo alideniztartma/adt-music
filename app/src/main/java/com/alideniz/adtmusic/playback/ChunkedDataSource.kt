@@ -10,7 +10,7 @@ import androidx.media3.datasource.TransferListener
 
 /**
  * YouTube (googlevideo.com) tek parça uzun isteklerde hızı düşürür.
- * Bu kaynak isteği [chunkSize] baytlık parçalara böler; her parça tam hızla gelir.
+ * Bu kaynak isteği parçalara böler (ilk parça [chunkSize], sonrakiler 4 MB); her parça tam hızla gelir.
  * Böylece şarkılar hem daha hızlı başlar hem de çok daha hızlı iner.
  */
 class ChunkedDataSource(
@@ -23,6 +23,7 @@ class ChunkedDataSource(
     private var position = 0L
     private var bytesRemaining = C.LENGTH_UNSET.toLong()
     private var upstreamOpen = false
+    private var chunksOpened = 0
 
     override fun addTransferListener(transferListener: TransferListener) {
         upstream.addTransferListener(transferListener)
@@ -36,6 +37,7 @@ class ChunkedDataSource(
             return upstream.open(dataSpec)
         }
         passthrough = false
+        chunksOpened = 0
         spec = dataSpec
         position = dataSpec.position
         bytesRemaining = dataSpec.length
@@ -57,7 +59,10 @@ class ChunkedDataSource(
 
     private fun openChunk() {
         val s = spec ?: return
-        val want = if (bytesRemaining == C.LENGTH_UNSET.toLong()) chunkSize else minOf(chunkSize, bytesRemaining)
+        // İlk parça küçük (hızlı başlangıç), sonrakiler büyük (daha az istek)
+        val size = if (chunksOpened == 0) chunkSize else LARGE_CHUNK
+        chunksOpened++
+        val want = if (bytesRemaining == C.LENGTH_UNSET.toLong()) size else minOf(size, bytesRemaining)
         val sub = s.buildUpon().setPosition(position).setLength(want).build()
         upstream.open(sub)
         upstreamOpen = true
@@ -105,5 +110,6 @@ class ChunkedDataSource(
 
     companion object {
         const val DEFAULT_CHUNK = 1L * 1024 * 1024
+        const val LARGE_CHUNK = 4L * 1024 * 1024
     }
 }

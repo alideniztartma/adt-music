@@ -53,6 +53,9 @@ class Settings(context: Context) {
     val dataWifiBytes = Pref("data_wifi_bytes", 0L)
     /** Bluetooth ses cihazı bağlanınca kaldığı yerden çal. */
     val btAutoPlay = Pref("bt_auto_play", false)
+    /** YouTube oturumu (hafif çözücü için, 12 saat yeniden kullanılır). */
+    val ytVisitorData = Pref("yt_visitor_data", "")
+    val ytVisitorAt = Pref("yt_visitor_at", 0L)
     val preloadNext = Pref("preload_next", true)
     val pauseOnDisconnect = Pref("pause_on_disconnect", true)
     val autoplay = Pref("autoplay", true)
@@ -115,6 +118,7 @@ class Settings(context: Context) {
     val artistUrls = Pref("artist_urls", "{}")
     /** sanatçı adı → son görülen video kimliği (JSON) */
     val artistLastSeen = Pref("artist_last_seen", "{}")
+    val watcherCursor = Pref("watcher_cursor", 0)
 
     // Oynatıcı düzeni
     /** "minimal" veya "apple" */

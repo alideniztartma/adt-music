@@ -89,7 +89,9 @@ class AppContainer(val context: Context) {
         .map { it.toSet() }
         .stateIn(appScope, SharingStarted.Eagerly, emptySet())
 
-    val youtube = YouTubeRepository()
+    /** YouTube sınırlamasına karşı geri çekilme ve durum bilgisi. */
+    val guard = com.alideniz.adtmusic.data.StreamGuard()
+    val youtube = YouTubeRepository(com.alideniz.adtmusic.data.FastResolver(settings), guard)
     val lyrics = LyricsRepository(httpClient, dao)
     val mixes = com.alideniz.adtmusic.data.Mixes(dao, youtube)
     val updater = com.alideniz.adtmusic.data.Updater(context, httpClient, settings)
