@@ -59,7 +59,7 @@ data class Compatibility(
     val friendName: String,
 )
 
-/** Seri, rozet, haftalık özet ve zevk karşılaştırması. Hepsi cihazda hesaplanır. */
+/** Seri, rozet, haftalık özet ve Mixtape eşleşmesi. Hepsi cihazda hesaplanır. */
 object Insights {
 
     private fun valid(r: HistoryRow) = r.listenedMs < 0 || r.listenedMs >= 30_000L
@@ -167,11 +167,17 @@ object Insights {
             })
         }
         val bytes = ByteArrayOutputStream().also { bos -> GZIPOutputStream(bos).use { it.write(o.toString().toByteArray()) } }.toByteArray()
-        return "ADT1:" + Base64.encodeToString(bytes, Base64.NO_WRAP or Base64.URL_SAFE)
+        return "MIX1:" + Base64.encodeToString(bytes, Base64.NO_WRAP or Base64.URL_SAFE)
     }
 
     fun decode(code: String): TasteProfile? = runCatching {
-        val raw = code.trim().substringAfter("ADT1:", "").ifEmpty { return null }
+        val t = code.trim()
+        // Paylaşılan mesajın içinden kodu bul (eski "ADT1:" kodları da geçerli)
+        val raw = when {
+            t.contains("MIX1:") -> t.substringAfter("MIX1:")
+            t.contains("ADT1:") -> t.substringAfter("ADT1:")
+            else -> ""
+        }.trim().takeWhile { !it.isWhitespace() }.ifEmpty { return null }
         val bytes = Base64.decode(raw, Base64.NO_WRAP or Base64.URL_SAFE)
         val json = GZIPInputStream(ByteArrayInputStream(bytes)).use { it.readBytes().toString(Charsets.UTF_8) }
         val o = JSONObject(json)
@@ -207,11 +213,11 @@ object Insights {
         val raw = (artistPart * 0.65 + songPart * 0.35).coerceIn(0.0, 1.0)
         val percent = (sqrt(raw) * 100).toInt().coerceIn(if (raw > 0) 8 else 0, 99)
         val label = when {
-            percent >= 85 -> "Aynı frekans: ses ikizisiniz"
-            percent >= 65 -> "Güçlü sinyal"
-            percent >= 40 -> "Frekanslar kesişiyor"
-            percent >= 20 -> "Farklı bantlar, ilginç parazit"
-            else -> "Bambaşka istasyonlar"
+            percent >= 85 -> "Aynı kaset: müzik ikizisiniz"
+            percent >= 65 -> "Ortak mixtape hazır"
+            percent >= 40 -> "Aynı kasette iyi çalarsınız"
+            percent >= 20 -> "A yüzü sen, B yüzü o"
+            else -> "Bambaşka kasetler"
         }
         return Compatibility(
             percent = percent,

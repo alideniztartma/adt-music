@@ -136,8 +136,15 @@ object AdtIcons {
         ),
     )
     val Badge = stroke("badge", "M12 3a6 6 0 1 1 0 12a6 6 0 1 1 0-12z", "M8.5 14L7 21l5-3 5 3-1.5-7")
-    /** Frekans: iki dalga */
-    val Frequency = stroke("frequency", "M2 12h3l2-6 3 12 3-9 2 6 2-3h5")
+    /** Mixtape: kaset */
+    val Cassette = stroke(
+        "cassette",
+        "M3 5.5h18v13H3z",
+        "M8 12.5a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z",
+        "M16 12.5a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z",
+        "M9.8 10.7h4.4",
+        "M7 18.5l1.5-3h7l1.5 3",
+    )
     val Incognito = stroke("incognito", "M3 11h18", "M6 11l2-6h8l2 6", "M7.5 18.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z", "M16.5 18.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z", "M10 16h4")
     val Bluetooth = stroke("bluetooth", "M7 7l10 10-5 4V3l5 4L7 17")
     val Volume = stroke("volume", "M4 9h4l5-4v14l-5-4H4z", "M16 9a4 4 0 0 1 0 6", "M18.5 6.5a7.5 7.5 0 0 1 0 11")

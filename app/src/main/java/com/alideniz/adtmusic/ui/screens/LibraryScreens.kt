@@ -160,7 +160,7 @@ fun LibraryScreen() {
             LibraryRow(AdtIcons.Moment, "Anıların", momentCount.toString()) { ui.navigate(Routes.MOMENTS) }
             LibraryRow(AdtIcons.Wrapped, "ADT Wrapped", "") { ui.navigate(Routes.WRAPPED) }
             LibraryRow(AdtIcons.Badge, "Rozetler", "") { ui.navigate(Routes.BADGES) }
-            LibraryRow(AdtIcons.Frequency, "Frekans · arkadaşınla eşleş", "") { ui.navigate(Routes.TASTE) }
+            LibraryRow(AdtIcons.Cassette, "Mixtape · arkadaşınla takas et", "") { ui.navigate(Routes.TASTE) }
             LibraryRow(AdtIcons.Import, "Spotify / YouTube listesi aktar", "") { ui.navigate(Routes.IMPORT) }
             LibraryRow(AdtIcons.Stats, "Dinleme istatistiklerin", "") { ui.navigate(Routes.STATS) }
             LibraryRow(AdtIcons.Equalizer, "Ekolayzer", "") { ui.navigate(Routes.EQUALIZER) }

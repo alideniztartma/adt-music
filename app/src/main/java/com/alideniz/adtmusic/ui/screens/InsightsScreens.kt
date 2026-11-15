@@ -224,7 +224,7 @@ private fun BadgeCard(b: Badge, modifier: Modifier) {
     }
 }
 
-// ------------------------------------------------------------------ Frekans (arkadaşla eşleşme)
+// ------------------------------------------------------------------ Mixtape (arkadaşla eşleşme)
 
 private fun qrBitmap(text: String, size: Int = 640, dark: Int, light: Int): Bitmap {
     val hints = mapOf(EncodeHintType.MARGIN to 1)
@@ -257,9 +257,9 @@ fun TasteScreen() {
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
-            ScreenHeader("Frekans", "Arkadaşınla aynı frekansta mısınız?", onBack = { ui.back() })
+            ScreenHeader("Mixtape", "Mixtape'ini arkadaşınla takas et, uyumunuzu gör", onBack = { ui.back() })
             Column(Modifier.padding(horizontal = 20.dp)) {
-                Txt("SENİN FREKANSIN", AdtTheme.type.label, color = c.muted)
+                Txt("SENİN MIXTAPE'İN", AdtTheme.type.label, color = c.muted)
                 Spacer(Modifier.height(8.dp))
                 TextInput(
                     value = name,
@@ -271,13 +271,13 @@ fun TasteScreen() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(150.dp).clip(AdtTheme.shape).background(c.surface), contentAlignment = Alignment.Center) {
                         val b = qr
-                        if (b != null) Image(b.asImageBitmap(), "Frekans QR kodu", Modifier.fillMaxSize().padding(6.dp))
+                        if (b != null) Image(b.asImageBitmap(), "Mixtape QR kodu", Modifier.fillMaxSize().padding(6.dp))
                         else LoadingBlock()
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Txt("Kodunu arkadaşına gönder ya da QR'ı göster. O da kendi kodunu sana yollasın.", AdtTheme.type.caption, color = c.muted)
-                        Btn("Paylaş", { myCode?.let { shareText(context, "ADT Music frekansım", "ADT Music'te aynı frekansta mıyız? Frekans kodum:\n\n$it") } }, Modifier.fillMaxWidth(), icon = AdtIcons.Share, style = BtnStyle.INK, height = 42.dp)
+                        Txt("Mixtape kodunu arkadaşına gönder ya da QR'ı göster. O da kendi kodunu sana yollasın.", AdtTheme.type.caption, color = c.muted)
+                        Btn("Paylaş", { myCode?.let { shareText(context, "ADT Music mixtape'im", "ADT Music'te mixtape'lerimizi karşılaştıralım! Kodum:\n\n$it") } }, Modifier.fillMaxWidth(), icon = AdtIcons.Share, style = BtnStyle.INK, height = 42.dp)
                         Btn("Kopyala", {
                             myCode?.let {
                                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -290,22 +290,22 @@ fun TasteScreen() {
                 Spacer(Modifier.height(24.dp))
                 Line()
                 Spacer(Modifier.height(16.dp))
-                Txt("ARKADAŞININ FREKANSI", AdtTheme.type.label, color = c.muted)
+                Txt("ARKADAŞININ MIXTAPE'İ", AdtTheme.type.label, color = c.muted)
                 Spacer(Modifier.height(8.dp))
                 TextInput(
                     value = friendCode,
                     onValueChange = { friendCode = it; error = null },
-                    placeholder = "ADT1:… kodunu yapıştır",
+                    placeholder = "MIX1:… kodunu yapıştır",
                     style = AdtTheme.type.bodyStrong,
                 )
                 Spacer(Modifier.height(10.dp))
-                Btn("Frekansları eşleştir", {
-                    val friend = Insights.decode(friendCode.substringAfter("ADT1:").let { "ADT1:$it" }.trim())
+                Btn("Mixtape'leri karşılaştır", {
+                    val friend = Insights.decode(friendCode)
                     if (friend == null) { error = "Kod okunamadı. Tamamını kopyaladığından emin ol."; return@Btn }
                     val code = myCode ?: return@Btn
                     val me = Insights.decode(code) ?: return@Btn
                     result = Insights.compare(me, friend)
-                }, Modifier.fillMaxWidth(), icon = AdtIcons.Frequency, style = BtnStyle.ACCENT)
+                }, Modifier.fillMaxWidth(), icon = AdtIcons.Cassette, style = BtnStyle.ACCENT)
                 error?.let { Spacer(Modifier.height(8.dp)); Txt(it, AdtTheme.type.bodyStrong, color = c.accent) }
             }
         }
