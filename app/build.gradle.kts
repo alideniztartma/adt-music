@@ -112,6 +112,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.1")
+    // Hafif akış çözücü için (NewPipe ile aynı sürüm)
+    implementation("com.github.TeamNewPipe:nanojson:e9d656ddb49a412a5a0a5d5ef20ca7ef09549996")
 
     // Yerel veritabanı
     val room = "2.6.1"

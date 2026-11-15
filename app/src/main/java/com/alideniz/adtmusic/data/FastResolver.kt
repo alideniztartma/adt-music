@@ -97,7 +97,7 @@ class FastResolver(private val settings: Settings) {
             }
             if (status == "LOGIN_REQUIRED") return null // yaş sınırı vb.: tam çıkarım denesin
             if (status == "UNPLAYABLE" || status == "ERROR") {
-                throw IllegalStateException(play.getString("reason", "Bu şarkı çalınamıyor"))
+                throw IllegalStateException(play.getString("reason", "Bu şarkı çalınamıyor") ?: "Bu şarkı çalınamıyor")
             }
             return null
         }
