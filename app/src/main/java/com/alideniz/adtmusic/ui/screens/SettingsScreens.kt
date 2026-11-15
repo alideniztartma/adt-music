@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -154,6 +156,107 @@ private fun EffectSlider(label: String, value: Int, enabled: Boolean, onChange: 
     }
 }
 
+@Composable
+private fun DataUsageCard(mobile: Long, wifi: Long, onReset: () -> Unit) {
+    val c = AdtTheme.colors
+    val total = (mobile + wifi).coerceAtLeast(1)
+    Column(
+        Modifier.padding(horizontal = 20.dp, vertical = 12.dp).fillMaxWidth().border(1.dp, c.ink).padding(16.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Txt("BU AYKİ VERİ KULLANIMI", AdtTheme.type.label, color = c.accent, modifier = Modifier.weight(1f))
+            Txt("SIFIRLA", AdtTheme.type.label, color = c.faint, modifier = Modifier.press(label = "Sıfırla", onClick = onReset).padding(4.dp))
+        }
+        Spacer(Modifier.height(10.dp))
+        Row {
+            Column(Modifier.weight(1f)) {
+                Txt("MOBİL", AdtTheme.type.label, color = c.muted)
+                Txt(com.alideniz.adtmusic.playback.DataUsage.format(mobile), AdtTheme.type.headline)
+            }
+            Column(Modifier.weight(1f)) {
+                Txt("WI-FI", AdtTheme.type.label, color = c.muted)
+                Txt(com.alideniz.adtmusic.playback.DataUsage.format(wifi), AdtTheme.type.headline)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth().height(6.dp).background(c.line)) {
+            val f = mobile.toFloat() / total
+            if (f > 0f) Box(Modifier.weight(f).fillMaxHeight().background(c.accent))
+            if (f < 1f) Box(Modifier.weight(1f - f).fillMaxHeight().background(c.ink))
+        }
+        Spacer(Modifier.height(6.dp))
+        Txt("Akış ve indirmeler dahil. Ay başında kendiliğinden sıfırlanır.", AdtTheme.type.caption, color = c.muted)
+    }
+}
+
+/** Oynatıcı tarzı seçimi: küçük önizlemelerle. */
+@Composable
+private fun PlayerStylePicker(selected: String, onSelect: (String) -> Unit) {
+    val c = AdtTheme.colors
+    Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        listOf("minimal" to "Minimal", "apple" to "Apple Music").forEach { (key, label) ->
+            val on = key == selected
+            Column(
+                Modifier
+                    .weight(1f)
+                    .border(if (on) 2.dp else 1.dp, if (on) c.accent else c.line)
+                    .press(label = label) { onSelect(key) }
+                    .padding(10.dp),
+            ) {
+                // küçük şematik önizleme
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(0.62f)
+                        .background(
+                            if (key == "apple") androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(Color(0xFF5B2A86), Color(0xFFB5453A), Color(0xFF1C1A2E))
+                            ) else androidx.compose.ui.graphics.SolidColor(c.paper)
+                        )
+                        .border(1.dp, c.line)
+                        .padding(10.dp),
+                ) {
+                    Column(Modifier.fillMaxSize()) {
+                        val fg = if (key == "apple") Color.White else c.ink
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .clip(if (key == "apple") androidx.compose.foundation.shape.RoundedCornerShape(8.dp) else androidx.compose.ui.graphics.RectangleShape)
+                                .background(if (key == "apple") Color.White.copy(alpha = 0.85f) else c.ink)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.fillMaxWidth(0.7f).height(6.dp).background(fg))
+                        Spacer(Modifier.height(4.dp))
+                        Box(Modifier.fillMaxWidth(0.45f).height(4.dp).background(fg.copy(alpha = 0.5f)))
+                        Spacer(Modifier.weight(1f))
+                        Box(
+                            Modifier.fillMaxWidth().height(3.dp)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                                .background(fg.copy(alpha = 0.4f))
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                            if (key == "apple") {
+                                repeat(3) { i -> Box(Modifier.size(if (i == 1) 14.dp else 10.dp).clip(CircleShape).background(fg)) }
+                            } else {
+                                Box(Modifier.size(16.dp).background(c.accent))
+                                Box(Modifier.size(width = 10.dp, height = 16.dp).border(1.dp, fg))
+                                Box(Modifier.size(width = 10.dp, height = 16.dp).border(1.dp, fg))
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Txt(label, AdtTheme.type.bodyStrong, modifier = Modifier.weight(1f))
+                    if (on) AdtIcon(AdtIcons.Check, null, tint = c.accent, size = 16.dp)
+                }
+            }
+        }
+    }
+}
+
 private val ACCENTS = listOf(
     0xFFFF5A1F.toInt(), 0xFFE5383B.toInt(), 0xFFFF4D8D.toInt(), 0xFF8A5CFF.toInt(),
     0xFF2F6BFF.toInt(), 0xFF00A6A6.toInt(), 0xFF18B36B.toInt(), 0xFFFFB400.toInt(),
@@ -203,6 +306,23 @@ fun SettingsScreen() {
     val coverAnim by s.coverAnimation.flow.collectAsState()
     val releaseNotify by s.releaseNotifications.flow.collectAsState()
     val weeklyNotify by s.weeklyNotification.flow.collectAsState()
+    val mobileQuality by s.mobileQuality.flow.collectAsState()
+    val usage by app.dataUsage.usage.collectAsState()
+    val btAuto by s.btAutoPlay.flow.collectAsState()
+    val iconFollows by s.iconFollowsAccent.flow.collectAsState()
+    val playerStyle by s.playerStyle.flow.collectAsState()
+    val coverSize by s.coverSize.flow.collectAsState()
+    val lyricsPlacement by s.lyricsPlacement.flow.collectAsState()
+    val volumeBar by s.playerVolumeBar.flow.collectAsState()
+    val lyricsWeight by s.lyricsWeight.flow.collectAsState()
+    val lyricsSpacing by s.lyricsSpacing.flow.collectAsState()
+    val lyricsUpper by s.lyricsUppercase.flow.collectAsState()
+    val lyricsHighlight by s.lyricsHighlight.flow.collectAsState()
+    val lyricsBlur by s.lyricsBlur.flow.collectAsState()
+    val btPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) { s.btAutoPlay.set(true); app.toast("Bluetooth bağlanınca müzik kendiliğinden başlayacak") }
+        else app.toast("Bluetooth izni olmadan bağlantı algılanamaz")
+    }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var pendingVisualizer by remember { mutableStateOf<String?>(null) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -283,10 +403,15 @@ fun SettingsScreen() {
                 }
             }
         }
+        SwitchRow(
+            "Uygulama simgesi vurgu rengini izlesin",
+            "Simgedeki daire seçtiğin renge bürünür. Değişiklik uygulamadan çıkınca görünür; başlatıcı simgeyi birkaç saniye içinde yeniler.",
+            iconFollows,
+        ) { s.iconFollowsAccent.set(it) }
         Line()
         Choice("Köşeler", listOf("sharp" to "Keskin", "soft" to "Yumuşak", "round" to "Yuvarlak"), corner) { s.cornerStyle.set(it) }
         Choice("Yazı boyutu", listOf(0.9f to "Küçük", 1f to "Normal", 1.1f to "Büyük", 1.2f to "Çok büyük"), fontScale) { s.fontScale.set(it) }
-        Choice("Oynatıcı arka planı", listOf("tint" to "Renkli", "blur" to "Bulanık kapak", "plain" to "Düz"), playerBg) { s.playerBackground.set(it) }
+        Choice("Oynatıcı arka planı", listOf("tint" to "Renkli", "mesh" to "Hareketli renk", "blur" to "Bulanık kapak", "plain" to "Düz"), playerBg) { s.playerBackground.set(it) }
         SwitchRow("Mini oynatıcıda ilerleme çizgisi", null, miniProgress) { s.miniPlayerProgress.set(it) }
         Choice("Açılış sayfası", listOf(Routes.HOME to "Ana sayfa", Routes.SEARCH to "Ara", Routes.LIBRARY to "Kütüphane"), startTab) { s.startTab.set(it) }
 
@@ -301,16 +426,40 @@ fun SettingsScreen() {
             app.toast("Ana sayfayı yenileyince geçerli olur")
         }
 
+        // ------------------------------------------------------------ oynatıcı düzeni
+        Group("Oynatıcı")
+        PlayerStylePicker(playerStyle) { s.playerStyle.set(it) }
+        Choice(
+            "Kapak",
+            listOf("large" to "Büyük", "medium" to "Orta", "small" to "Küçük", "none" to "Kapaksız"),
+            coverSize,
+        ) { s.coverSize.set(it) }
+        Txt(
+            "Kapaksız modda şarkı adı dev yazıyla ekranı kaplar.",
+            AdtTheme.type.caption, color = c.muted, modifier = Modifier.padding(horizontal = 20.dp),
+        )
+        Choice(
+            "Sözler nerede görünsün",
+            listOf("button" to "Düğmeyle", "preview" to "Kapağın altında", "auto" to "Otomatik aç"),
+            lyricsPlacement,
+        ) { s.lyricsPlacement.set(it) }
+        SwitchRow("Ses çubuğu", "Oynatıcıda cihaz sesini ayarlayan çubuk (Apple Music tarzında).", volumeBar) { s.playerVolumeBar.set(it) }
+
         // ------------------------------------------------------------ sözler
         Group("Sözler")
         Choice(
             "Animasyon",
-            listOf("word" to "Kelime kelime", "fill" to "Dolgu", "glow" to "Parlama", "focus" to "Odak"),
+            listOf("apple" to "Apple Music", "word" to "Kelime kelime", "fill" to "Dolgu", "glow" to "Parlama", "focus" to "Odak"),
             lyricsAnim,
         ) { s.lyricsAnimation.set(it) }
         LyricsPreview(lyricsAnim, lyricsAlign)
         Choice("Hizalama", listOf("start" to "Sola", "center" to "Ortala"), lyricsAlign) { s.lyricsAlign.set(it) }
         Choice("Yazı boyutu", listOf(22 to "Küçük", 26 to "Orta", 32 to "Büyük", 38 to "Dev"), lyricsSize) { s.lyricsTextSize.set(it) }
+        Choice("Kalınlık", listOf("medium" to "İnce", "bold" to "Kalın", "extrabold" to "Çok kalın"), lyricsWeight) { s.lyricsWeight.set(it) }
+        Choice("Satır aralığı", listOf("tight" to "Sıkı", "normal" to "Normal", "wide" to "Geniş"), lyricsSpacing) { s.lyricsSpacing.set(it) }
+        Choice("Çalan satırın rengi", listOf("accent" to "Vurgu rengi", "ink" to "Yazı rengi"), lyricsHighlight) { s.lyricsHighlight.set(it) }
+        SwitchRow("BÜYÜK HARF", "Sözleri büyük harfle gösterir.", lyricsUpper) { s.lyricsUppercase.set(it) }
+        SwitchRow("Uzak satırları bulanıklaştır", "Çalan satıra odaklanır (Android 12 ve üstü).", lyricsBlur) { s.lyricsBlur.set(it) }
         SwitchRow("Sözler açıkken ekran kapanmasın", null, keepScreen) { s.keepScreenOnLyrics.set(it) }
 
         // ------------------------------------------------------------ oynatıcı görselleri
@@ -353,8 +502,25 @@ fun SettingsScreen() {
 
         // ------------------------------------------------------------ çalma
         Group("Çalma")
-        Choice("Ses kalitesi", listOf("high" to "Yüksek", "normal" to "Normal", "low" to "Tasarruf"), quality) { s.audioQuality.set(it) }
-        SwitchRow("Mobil veride tasarruf", "Wi-Fi yokken düşük kalite kullanılır.", dataSaver) { s.mobileDataSaver.set(it) }
+        Choice("Wi-Fi'da ses kalitesi", listOf("high" to "Yüksek", "normal" to "Normal", "low" to "Tasarruf"), quality) { s.audioQuality.set(it) }
+        Choice(
+            "Mobil veride ses kalitesi",
+            listOf("same" to "Wi-Fi ile aynı", "high" to "Yüksek", "normal" to "Normal", "low" to "Tasarruf"),
+            if (mobileQuality == "same" && dataSaver) "low" else mobileQuality,
+        ) { s.mobileQuality.set(it); s.mobileDataSaver.set(false) }
+        DataUsageCard(usage.mobileBytes, usage.wifiBytes) { app.dataUsage.reset(); app.toast("Sayaç sıfırlandı") }
+        SwitchRow(
+            "Bluetooth bağlanınca çal",
+            "Kulaklık, hoparlör ya da araba bağlanınca kaldığın yerden başlar.",
+            btAuto,
+        ) { on ->
+            if (!on) s.btAutoPlay.set(false)
+            else if (android.os.Build.VERSION.SDK_INT >= 31 &&
+                androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.BLUETOOTH_CONNECT) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) btPermission.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
+            else s.btAutoPlay.set(true)
+        }
         SwitchRow("Sıradaki şarkıyı önceden yükle", "Geçişte beklemezsin; biraz daha veri kullanır.", preload) { s.preloadNext.set(it) }
         SwitchRow("Otomatik oynatma", "Sıra bitince benzer şarkılarla radyo gibi devam eder.", autoplay) { s.autoplay.set(it) }
         Choice(
@@ -425,7 +591,11 @@ fun SettingsScreen() {
         Group("Gizlilik")
         SwitchRow("Arama geçmişini kaydet", null, saveSearch) { s.saveSearchHistory.set(it) }
         SwitchRow("Arama önerileri", "Yazarken öneri göster.", suggestions) { s.searchSuggestions.set(it) }
-        SwitchRow("Dinleme geçmişini duraklat", "Açıkken dinlediklerin geçmişe ve istatistiklere eklenmez.", pauseHistory) { s.pauseHistory.set(it) }
+        SwitchRow(
+            "Gizli mod",
+            "Açıkken dinlediklerin ve aramaların geçmişe, Wrapped'e, istatistiklere ve önerilere yazılmaz. Kütüphane'nin üstünden de açıp kapatabilirsin.",
+            pauseHistory,
+        ) { s.pauseHistory.set(it) }
         NavRow("Arama geçmişini temizle", "") { scope.launch { app.dao.clearSearches(); app.toast("Arama geçmişi silindi") } }
         NavRow("Dinleme geçmişini temizle", "Wrapped ve istatistikler de sıfırlanır") {
             ui.show(SheetSpec.Confirm("Geçmiş silinsin mi?", "Dinleme geçmişin, Wrapped ve istatistiklerin sıfırlanır.", "Sil") {
@@ -543,6 +713,26 @@ private fun LyricsPreview(animation: String, align: String) {
                 text, Modifier.fillMaxWidth(),
                 style = style.copy(color = c.accent, shadow = androidx.compose.ui.graphics.Shadow(c.accent.copy(alpha = 0.7f), blurRadius = 24f)),
             )
+            "apple" -> {
+                val words = text.split(" ")
+                val total = words.sumOf { it.length + 1 }
+                val annotated = androidx.compose.ui.text.buildAnnotatedString {
+                    var acc = 0
+                    words.forEachIndexed { i, w ->
+                        val start = acc.toFloat() / total
+                        acc += w.length + 1
+                        val end = acc.toFloat() / total
+                        val t = ((f - start) / (end - start)).coerceIn(0f, 1f)
+                        pushStyle(androidx.compose.ui.text.SpanStyle(color = androidx.compose.ui.graphics.lerp(c.ink.copy(alpha = 0.35f), c.ink, t)))
+                        append(w); pop()
+                        if (i < words.size - 1) append(" ")
+                    }
+                }
+                androidx.compose.foundation.text.BasicText(
+                    annotated, Modifier.fillMaxWidth(),
+                    style = style.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold, fontSize = style.fontSize * 1.08f),
+                )
+            }
             else -> Txt(text, style.copy(fontSize = style.fontSize * 1.05f), color = c.ink, modifier = Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(6.dp))

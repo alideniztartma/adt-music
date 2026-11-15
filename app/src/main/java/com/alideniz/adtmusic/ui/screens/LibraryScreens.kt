@@ -67,6 +67,7 @@ fun LibraryScreen() {
     val doneCount = downloads.count { it.value.state == DlState.DONE }
     val followed by app.followed.collectAsState()
     val momentCount by remember { app.dao.momentCount() }.collectAsState(initial = 0)
+    val incognito by app.settings.pauseHistory.flow.collectAsState()
 
     fun newPlaylist() = ui.show(
         SheetSpec.Input("Yeni çalma listesi", "", "Oluştur") { name ->
@@ -84,29 +85,34 @@ fun LibraryScreen() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Txt("Kütüphane", AdtTheme.type.display, modifier = Modifier.weight(1f))
+                IconBtn(
+                    AdtIcons.Incognito, if (incognito) "Gizli modu kapat" else "Gizli mod",
+                    {
+                        app.settings.pauseHistory.set(!incognito)
+                        app.toast(if (!incognito) "Gizli mod açık: dinlediklerin kaydedilmez" else "Gizli mod kapandı")
+                    },
+                    tint = if (incognito) c.accent else c.ink,
+                )
                 IconBtn(AdtIcons.Settings, "Ayarlar", { ui.navigate(Routes.SETTINGS) })
             }
+            if (incognito) {
+                Row(
+                    Modifier.padding(horizontal = 20.dp, vertical = 6.dp).background(c.ink).padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AdtIcon(AdtIcons.Incognito, null, tint = c.paper, size = 16.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Txt("GİZLİ MOD AÇIK", AdtTheme.type.label, color = c.paper)
+                }
+            }
             Spacer(Modifier.height(20.dp))
-            Line(color = c.ink)
-            LibraryRow(AdtIcons.Heart, "Beğenilenler", liked.size.toString()) { ui.navigate(Routes.LIKED) }
-            LibraryRow(AdtIcons.Download, "İndirilenler", doneCount.toString()) { ui.navigate(Routes.DOWNLOADS) }
-            LibraryRow(AdtIcons.History, "Geçmiş", totalPlays.toString()) { ui.navigate(Routes.HISTORY) }
-            LibraryRow(AdtIcons.Following, "Takip ettiğin sanatçılar", followed.size.toString()) { ui.navigate(Routes.FOLLOWING) }
-            LibraryRow(AdtIcons.Moment, "Anıların", momentCount.toString()) { ui.navigate(Routes.MOMENTS) }
-            LibraryRow(AdtIcons.Wrapped, "ADT Wrapped", "") { ui.navigate(Routes.WRAPPED) }
-            LibraryRow(AdtIcons.Badge, "Rozetler ve seri", "") { ui.navigate(Routes.BADGES) }
-            LibraryRow(AdtIcons.Following, "Zevk karşılaştır", "") { ui.navigate(Routes.TASTE) }
-            LibraryRow(AdtIcons.Import, "Spotify / YouTube listesi aktar", "") { ui.navigate(Routes.IMPORT) }
-            LibraryRow(AdtIcons.Stats, "Dinleme istatistiklerin", "") { ui.navigate(Routes.STATS) }
-            LibraryRow(AdtIcons.Equalizer, "Ekolayzer", "") { ui.navigate(Routes.EQUALIZER) }
-            Spacer(Modifier.height(28.dp))
-            SmartShelf()
-            Spacer(Modifier.height(32.dp))
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Txt("Çalma listelerin", AdtTheme.type.headline, modifier = Modifier.weight(1f))
+                Txt("Çalma listelerim", AdtTheme.type.headline, modifier = Modifier.weight(1f))
+                if (playlists.isNotEmpty()) Txt("${playlists.size}", AdtTheme.type.headline, color = c.accent)
+                Spacer(Modifier.width(14.dp))
                 TextLink("+ Yeni", { newPlaylist() })
             }
             Spacer(Modifier.height(8.dp))
@@ -130,14 +136,36 @@ fun LibraryScreen() {
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Cover(p.cover, Modifier.size(60.dp))
+                if (p.cover != null) Cover(p.cover, Modifier.size(60.dp))
+                else MosaicCover(emptyList(), Modifier.size(60.dp))
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Txt(p.playlist.name, AdtTheme.type.bodyStrong, maxLines = 1)
-                    Txt("${p.songCount} şarkı", AdtTheme.type.caption, color = c.muted)
+                    Txt(
+                        listOfNotNull("${p.songCount} şarkı", p.playlist.description.lineSequence().firstOrNull()?.takeIf { it.isNotBlank() })
+                            .joinToString(" · "),
+                        AdtTheme.type.caption, color = c.muted, maxLines = 1,
+                    )
                 }
                 AdtIcon(AdtIcons.ChevronRight, null, tint = c.faint, size = 18.dp)
             }
+        }
+        item {
+            Spacer(Modifier.height(24.dp))
+            Line(color = c.ink)
+            LibraryRow(AdtIcons.Heart, "Beğenilenler", liked.size.toString()) { ui.navigate(Routes.LIKED) }
+            LibraryRow(AdtIcons.Download, "İndirilenler", doneCount.toString()) { ui.navigate(Routes.DOWNLOADS) }
+            LibraryRow(AdtIcons.History, "Geçmiş", totalPlays.toString()) { ui.navigate(Routes.HISTORY) }
+            LibraryRow(AdtIcons.Following, "Takip ettiğin sanatçılar", followed.size.toString()) { ui.navigate(Routes.FOLLOWING) }
+            LibraryRow(AdtIcons.Moment, "Anıların", momentCount.toString()) { ui.navigate(Routes.MOMENTS) }
+            LibraryRow(AdtIcons.Wrapped, "ADT Wrapped", "") { ui.navigate(Routes.WRAPPED) }
+            LibraryRow(AdtIcons.Badge, "Rozetler", "") { ui.navigate(Routes.BADGES) }
+            LibraryRow(AdtIcons.Frequency, "Frekans · arkadaşınla eşleş", "") { ui.navigate(Routes.TASTE) }
+            LibraryRow(AdtIcons.Import, "Spotify / YouTube listesi aktar", "") { ui.navigate(Routes.IMPORT) }
+            LibraryRow(AdtIcons.Stats, "Dinleme istatistiklerin", "") { ui.navigate(Routes.STATS) }
+            LibraryRow(AdtIcons.Equalizer, "Ekolayzer", "") { ui.navigate(Routes.EQUALIZER) }
+            Spacer(Modifier.height(28.dp))
+            SmartShelf()
         }
         item { Spacer(Modifier.height(LocalBottomInset.current + 24.dp)) }
     }

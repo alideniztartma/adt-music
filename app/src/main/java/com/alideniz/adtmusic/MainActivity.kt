@@ -223,6 +223,16 @@ class MainActivity : ComponentActivity() {
         applyRefreshRate(wantHighRefresh)
     }
 
+    override fun onStop() {
+        super.onStop()
+        val app = container
+        runCatching { app.dataUsage.flush() }
+        if (!isChangingConfigurations) {
+            val s = app.settings
+            runCatching { com.alideniz.adtmusic.util.AppIcon.apply(applicationContext, s.accentColor.value, s.iconFollowsAccent.value) }
+        }
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) applyRefreshRate(wantHighRefresh)

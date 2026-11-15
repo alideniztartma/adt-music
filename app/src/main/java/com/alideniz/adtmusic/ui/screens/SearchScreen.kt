@@ -122,7 +122,7 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         query = text
         submitted = text
         suggestions = emptyList()
-        if (app.settings.saveSearchHistory.value) {
+        if (app.settings.saveSearchHistory.value && !app.settings.pauseHistory.value) {
             viewModelScope.launch { app.dao.saveSearch(SearchHistoryEntity(text, System.currentTimeMillis())) }
         }
         runSearch()

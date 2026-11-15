@@ -43,6 +43,7 @@ class MediaStack(
     private val settings: Settings,
     private val youtube: YouTubeRepository,
     baseClient: OkHttpClient,
+    private val dataUsage: DataUsage? = null,
 ) {
     val databaseProvider = StandaloneDatabaseProvider(context)
 
@@ -80,6 +81,7 @@ class MediaStack(
             }
             chain.proceed(b.build())
         })
+        .apply { dataUsage?.let { addNetworkInterceptor(it.interceptor) } }
         .build()
 
     val cacheKeyFactory = CacheKeyFactory { spec: DataSpec ->
@@ -149,9 +151,12 @@ class MediaStack(
 
     /** Mobil veride tasarruf açıksa düşük kalite seçilir. */
     fun effectiveQuality(): String {
-        if (settings.mobileDataSaver.value) {
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
-            if (cm?.isActiveNetworkMetered == true) return "low"
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+        if (cm?.isActiveNetworkMetered == true) {
+            return when (val m = settings.mobileQuality.value) {
+                "same" -> if (settings.mobileDataSaver.value) "low" else settings.audioQuality.value
+                else -> m
+            }
         }
         return settings.audioQuality.value
     }

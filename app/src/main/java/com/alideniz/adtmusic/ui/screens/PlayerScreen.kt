@@ -18,6 +18,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -102,6 +103,17 @@ import kotlin.math.abs
 @Composable
 fun PlayerScreen() {
     val app = LocalContext.current.container
+    val playerStyle by app.settings.playerStyle.flow.collectAsState()
+    if (playerStyle == "apple") {
+        ApplePlayerScreen()
+        return
+    }
+    MinimalPlayerScreen()
+}
+
+@Composable
+private fun MinimalPlayerScreen() {
+    val app = LocalContext.current.container
     val ui = LocalAppUi.current
     val c = AdtTheme.colors
     val state by app.player.state.collectAsState()
@@ -126,8 +138,11 @@ fun PlayerScreen() {
         }
     }
     val bgStyle by app.settings.playerBackground.flow.collectAsState()
+    val coverSize by app.settings.coverSize.flow.collectAsState()
+    val placement by app.settings.lyricsPlacement.flow.collectAsState()
+    AutoOpenLyrics(song, placement)
     val bg by animateColorAsState(
-        if (bgStyle == "plain") c.paper else c.tint(if (c.isDark) 0.14f else 0.08f),
+        if (bgStyle == "plain" || bgStyle == "mesh") c.paper else c.tint(if (c.isDark) 0.14f else 0.08f),
         tween(700), label = "bg",
     )
     val heartScale = remember { Animatable(1f) }
@@ -162,6 +177,9 @@ fun PlayerScreen() {
                 )
             }
     ) {
+        if (bgStyle == "mesh") {
+            MeshBackground(song.thumbnail, c.paper.copy(alpha = if (c.isDark) 0.52f else 0.66f))
+        }
         if (bgStyle == "blur") {
             coil.compose.AsyncImage(
                 model = song.thumbnail,
@@ -223,7 +241,14 @@ fun PlayerScreen() {
                     }
                 } else {
                     Column(Modifier.fillMaxSize()) {
-                        SwipeCover(song, state, Modifier.fillMaxWidth().weight(1f, fill = false))
+                        if (coverSize == "none") {
+                            CoverlessTitle(song, Modifier.fillMaxWidth().weight(1f))
+                            PlayerVisualizer(state.isPlaying)
+                        } else {
+                        SwipeCover(
+                            song, state, Modifier.fillMaxWidth().weight(1f, fill = false),
+                            fraction = when (coverSize) { "small" -> 0.62f; "medium" -> 0.82f; else -> 1f },
+                        )
                         PlayerVisualizer(state.isPlaying)
                         AnimatedContent(
                             targetState = song,
@@ -247,6 +272,11 @@ fun PlayerScreen() {
                                     },
                                 )
                             }
+                        }
+                        }
+                        if (placement == "preview") {
+                            Spacer(Modifier.height(10.dp))
+                            LyricLinePreview(song, progress) { ui.lyricsMode = true }
                         }
                     }
                 }
@@ -370,7 +400,7 @@ private fun OutlinedControl(icon: androidx.compose.ui.graphics.vector.ImageVecto
 
 /** Kapak: sağa/sola kaydırınca şarkı değişir, çift dokununca beğenilir. */
 @Composable
-private fun SwipeCover(song: Song, state: PlayerUiState, modifier: Modifier = Modifier) {
+private fun SwipeCover(song: Song, state: PlayerUiState, modifier: Modifier = Modifier, fraction: Float = 1f) {
     val app = LocalContext.current.container
     val scope = rememberCoroutineScope()
     val offset = remember { Animatable(0f) }
@@ -409,8 +439,8 @@ private fun SwipeCover(song: Song, state: PlayerUiState, modifier: Modifier = Mo
     } else null
     val useBeat = beatMode && beatActive
 
-    BoxWithConstraints(modifier, contentAlignment = Alignment.TopStart) {
-        val side = minOf(maxWidth, maxHeight)
+    BoxWithConstraints(modifier, contentAlignment = if (fraction < 1f) Alignment.Center else Alignment.TopStart) {
+        val side = minOf(maxWidth, maxHeight) * fraction
         Box(
             Modifier
                 .size(side)
@@ -471,6 +501,51 @@ private fun SwipeCover(song: Song, state: PlayerUiState, modifier: Modifier = Mo
     }
 }
 
+private fun lyricWeight(pref: String) = when (pref) {
+    "medium" -> FontWeight.Medium
+    "bold" -> FontWeight.Bold
+    else -> FontWeight.ExtraBold
+}
+
+/** Kapaksız mod: şarkı adı dev yazıyla alanı kaplar. */
+@Composable
+private fun CoverlessTitle(song: Song, modifier: Modifier) {
+    val ui = LocalAppUi.current
+    val c = AdtTheme.colors
+    Box(modifier, contentAlignment = Alignment.BottomStart) {
+        AnimatedContent(
+            targetState = song,
+            transitionSpec = { fadeIn(tween(350)) togetherWith fadeOut(tween(200)) },
+            label = "bigTitle",
+        ) { s ->
+            Column {
+                Txt("ŞİMDİ", AdtTheme.type.label, color = c.accent)
+                Spacer(Modifier.height(8.dp))
+                val big = when {
+                    s.title.length > 40 -> 40.sp
+                    s.title.length > 22 -> 52.sp
+                    else -> 68.sp
+                }
+                Txt(
+                    s.title.uppercase(java.util.Locale("tr")),
+                    AdtTheme.type.hero.copy(fontSize = big, lineHeight = big * 0.94f, fontWeight = FontWeight.ExtraBold),
+                    maxLines = 6,
+                )
+                Spacer(Modifier.height(12.dp))
+                Box(Modifier.width(56.dp).height(6.dp).background(c.accent))
+                Spacer(Modifier.height(12.dp))
+                Txt(
+                    s.artist,
+                    AdtTheme.type.headline,
+                    color = c.muted,
+                    maxLines = 2,
+                    modifier = Modifier.press(label = "Sanatçıya git") { ui.navigate(Routes.artist(s.artist, null)) },
+                )
+            }
+        }
+    }
+}
+
 /** Kapağın altında çalan müziğe göre hareket eden çubuklar ya da dalga. */
 @Composable
 private fun PlayerVisualizer(playing: Boolean) {
@@ -526,11 +601,13 @@ private fun PlayerVisualizer(playing: Boolean) {
 
 /** Senkron sözler: çalan satır kayan bir dolguyla vurgulanır, satıra dokununca oraya atlar. */
 @Composable
-fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
+fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier, animationOverride: String? = null) {
     val app = LocalContext.current.container
     val ui = LocalAppUi.current
     val c = AdtTheme.colors
     val textSize by app.settings.lyricsTextSize.flow.collectAsState()
+    val weightPref by app.settings.lyricsWeight.flow.collectAsState()
+    val upper by app.settings.lyricsUppercase.flow.collectAsState()
     var reload by remember { mutableIntStateOf(0) }
     val lyrics by produceState<Load<Lyrics?>>(Load.Loading, song.id, reload) {
         value = Load.Loading
@@ -555,8 +632,12 @@ fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
                         )
                         data.lines.forEach { line ->
                             Txt(
-                                line.text.ifBlank { " " },
-                                AdtTheme.type.title.copy(fontSize = (textSize * 0.75f).sp, lineHeight = (textSize * 1.05f).sp),
+                                line.text.ifBlank { " " }.let { if (upper) it.uppercase(java.util.Locale("tr")) else it },
+                                AdtTheme.type.title.copy(
+                                    fontSize = (textSize * 0.75f).sp,
+                                    lineHeight = (textSize * 1.05f).sp,
+                                    fontWeight = lyricWeight(weightPref),
+                                ),
                                 modifier = if (line.text.isBlank()) Modifier else Modifier.press(
                                     label = "Söz kartı",
                                     onLongClick = { ui.show(SheetSpec.LyricCard(song, line.text)) },
@@ -565,7 +646,7 @@ fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
                         }
                         Spacer(Modifier.height(40.dp))
                     }
-                    else -> SyncedLyrics(song, data, progress, textSize)
+                    else -> SyncedLyrics(song, data, progress, textSize, animationOverride)
                 }
             }
         }
@@ -574,11 +655,20 @@ fun LyricsPane(song: Song, progress: Progress, modifier: Modifier = Modifier) {
 
 @OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
 @Composable
-private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSize: Int) {
+private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSize: Int, animationOverride: String? = null) {
     val app = LocalContext.current.container
     val ui = LocalAppUi.current
     val c = AdtTheme.colors
-    val animation by app.settings.lyricsAnimation.flow.collectAsState()
+    val animationPref by app.settings.lyricsAnimation.flow.collectAsState()
+    val animation = animationOverride ?: animationPref
+    val weightPref by app.settings.lyricsWeight.flow.collectAsState()
+    val spacing by app.settings.lyricsSpacing.flow.collectAsState()
+    val upper by app.settings.lyricsUppercase.flow.collectAsState()
+    val highlightPref by app.settings.lyricsHighlight.flow.collectAsState()
+    val blurPref by app.settings.lyricsBlur.flow.collectAsState()
+    val hi = if (highlightPref == "ink" || animation == "apple") c.ink else c.accent
+    val lineFactor = when (spacing) { "tight" -> 1.05f; "wide" -> 1.32f; else -> 1.15f }
+    val linePad = when (spacing) { "tight" -> 5.dp; "wide" -> 16.dp; else -> 10.dp }
     val align by app.settings.lyricsAlign.flow.collectAsState()
     val textAlign = if (align == "center") TextAlign.Center else TextAlign.Start
     val listState = rememberLazyListState()
@@ -598,8 +688,15 @@ private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSiz
     }
     LaunchedEffect(currentIndex, userScrolling) {
         if (currentIndex >= 0 && !userScrolling) {
-            val offset = with(density) { -(120.dp).roundToPx() }
-            listState.animateScrollToItem(currentIndex, offset)
+            val anchor = with(density) { 120.dp.roundToPx() }
+            val visible = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == currentIndex }
+            if (visible != null) {
+                // Görünüyorsa yaylı kaydırma: Apple Music'teki gibi yumuşak "yerine oturma"
+                val delta = (visible.offset - anchor).toFloat()
+                listState.animateScrollBy(delta, spring(dampingRatio = 0.86f, stiffness = 140f))
+            } else {
+                listState.animateScrollToItem(currentIndex, -anchor)
+            }
         }
     }
 
@@ -613,15 +710,16 @@ private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSiz
             val distance = if (currentIndex < 0) i + 1 else kotlin.math.abs(i - currentIndex)
             val baseStyle = AdtTheme.type.headline.copy(
                 fontSize = textSize.sp,
-                lineHeight = (textSize * 1.15f).sp,
-                fontWeight = FontWeight.ExtraBold,
+                lineHeight = (textSize * lineFactor).sp,
+                fontWeight = lyricWeight(weightPref),
                 textAlign = textAlign,
             )
-            val text = line.text.ifBlank { "♪" }
+            val text = line.text.ifBlank { "♪" }.let { if (upper) it.uppercase(java.util.Locale("tr")) else it }
             val next = lines.getOrNull(i + 1)?.timeMs ?: (line.timeMs + 4000)
             val f = if (isCurrent) ((pos - line.timeMs).toFloat() / (next - line.timeMs).coerceAtLeast(1)).coerceIn(0f, 1f) else 0f
 
             val targetScale = when {
+                animation == "apple" -> if (isCurrent) 1f else 0.965f
                 !isCurrent -> 1f
                 animation == "glow" -> 1.06f
                 animation == "focus" -> 1.04f
@@ -630,11 +728,15 @@ private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSiz
             val targetAlpha = when (animation) {
                 "focus" -> if (isCurrent) 1f else (1f - distance * 0.22f).coerceAtLeast(0.15f)
                 "glow" -> if (isCurrent) 1f else 0.35f
+                "apple" -> if (isCurrent) 1f else if (i < currentIndex) 0.3f else (0.5f - distance * 0.04f).coerceAtLeast(0.28f)
                 else -> 1f
             }
-            val scale by animateFloatAsState(targetScale, spring(dampingRatio = 0.6f, stiffness = 300f), label = "lyScale")
-            val alpha by animateFloatAsState(targetAlpha, tween(350), label = "lyAlpha")
-            val blur = if (animation == "focus" && !isCurrent && Build.VERSION.SDK_INT >= 31) (distance * 1.2f).coerceAtMost(4f).dp else 0.dp
+            val scale by animateFloatAsState(targetScale, spring(dampingRatio = 0.7f, stiffness = 220f), label = "lyScale")
+            val alpha by animateFloatAsState(targetAlpha, tween(420), label = "lyAlpha")
+            val wantsBlur = (animation == "focus" || animation == "apple" || blurPref) && !isCurrent && Build.VERSION.SDK_INT >= 31
+            val blurTarget = if (wantsBlur) (distance * if (animation == "apple") 1.4f else 1.2f).coerceAtMost(if (animation == "apple") 5f else 4f) else 0f
+            val blurAnim by animateFloatAsState(blurTarget, tween(420), label = "lyBlur")
+            val blur = blurAnim.dp
 
             val modifier = Modifier
                 .fillMaxWidth()
@@ -642,18 +744,18 @@ private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSiz
                     label = "Buraya atla",
                     onLongClick = if (line.text.isBlank()) null else ({ ui.show(SheetSpec.LyricCard(song, line.text)) }),
                 ) { app.player.seekTo(line.timeMs) }
-                .padding(vertical = 10.dp)
+                .padding(vertical = linePad)
                 .graphicsLayer {
                     scaleX = scale; scaleY = scale; this.alpha = alpha
                     transformOrigin = androidx.compose.ui.graphics.TransformOrigin(if (textAlign == TextAlign.Center) 0.5f else 0f, 0.5f)
                 }
-                .then(if (blur > 0.dp) Modifier.blur(blur) else Modifier)
+                .then(if (blur > 0.3.dp) Modifier.blur(blur) else Modifier)
 
             val pastColor = if (animation == "fill" || animation == "word") c.faint else c.muted
             when {
                 isCurrent && animation == "fill" -> {
                     val brush = Brush.horizontalGradient(
-                        0f to c.accent, f to c.accent, (f + 0.02f).coerceAtMost(1f) to c.ink, 1f to c.ink,
+                        0f to hi, f to hi, (f + 0.02f).coerceAtMost(1f) to c.ink, 1f to c.ink,
                     )
                     androidx.compose.foundation.text.BasicText(text, modifier, style = baseStyle.merge(TextStyle(brush = brush)))
                 }
@@ -668,8 +770,8 @@ private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSiz
                             acc += w.length + 1
                             val end = acc.toFloat() / total
                             val color = when {
-                                f >= end -> c.accent
-                                f > start -> androidx.compose.ui.graphics.lerp(c.ink, c.accent, ((f - start) / (end - start)).coerceIn(0f, 1f))
+                                f >= end -> hi
+                                f > start -> androidx.compose.ui.graphics.lerp(c.ink, hi, ((f - start) / (end - start)).coerceIn(0f, 1f))
                                 else -> c.ink
                             }
                             withStyle(androidx.compose.ui.text.SpanStyle(color = color)) { append(w) }
@@ -678,16 +780,37 @@ private fun SyncedLyrics(song: Song, lyrics: Lyrics, progress: Progress, textSiz
                     }
                     androidx.compose.foundation.text.BasicText(annotated, modifier, style = baseStyle)
                 }
+                isCurrent && animation == "apple" -> {
+                    // Apple Music: kelimeler sırayla soluktan parlağa döner
+                    val words = text.split(" ")
+                    val total = words.sumOf { it.length + 1 }.coerceAtLeast(1)
+                    val annotated = androidx.compose.ui.text.buildAnnotatedString {
+                        var acc = 0
+                        words.forEachIndexed { wi, w ->
+                            val start = acc.toFloat() / total
+                            acc += w.length + 1
+                            val end = acc.toFloat() / total
+                            val t = ((f - start) / (end - start)).coerceIn(0f, 1f)
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = androidx.compose.ui.graphics.lerp(c.ink.copy(alpha = 0.38f), c.ink, t))) { append(w) }
+                            if (wi < words.size - 1) append(" ")
+                        }
+                    }
+                    androidx.compose.foundation.text.BasicText(
+                        annotated, modifier,
+                        style = baseStyle.copy(shadow = androidx.compose.ui.graphics.Shadow(c.ink.copy(alpha = 0.25f * f), blurRadius = 18f)),
+                    )
+                }
                 isCurrent && animation == "glow" -> {
                     androidx.compose.foundation.text.BasicText(
                         text, modifier,
                         style = baseStyle.copy(
-                            color = c.accent,
-                            shadow = androidx.compose.ui.graphics.Shadow(c.accent.copy(alpha = 0.7f), blurRadius = 28f),
+                            color = hi,
+                            shadow = androidx.compose.ui.graphics.Shadow(hi.copy(alpha = 0.7f), blurRadius = 28f),
                         ),
                     )
                 }
                 isCurrent -> Txt(text, baseStyle, modifier = modifier, color = c.ink)
+                animation == "apple" -> Txt(text, baseStyle, modifier = modifier, color = c.ink)
                 else -> Txt(text, baseStyle, modifier = modifier, color = if (i < currentIndex) pastColor else c.muted)
             }
         }

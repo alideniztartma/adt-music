@@ -22,6 +22,14 @@ sealed interface SheetSpec {
     data object Update : SheetSpec
     data class SongInfo(val song: Song) : SheetSpec
     data class Comments(val song: Song) : SheetSpec
+    data class EditPlaylist(val id: Long, val name: String, val description: String) : SheetSpec
+    data class PlaylistCover(
+        val id: Long,
+        val name: String,
+        val songCount: Int,
+        val covers: List<String?>,
+        val hasCustom: Boolean,
+    ) : SheetSpec
     data class LyricCard(val song: Song, val line: String) : SheetSpec
     data class Input(
         val title: String,

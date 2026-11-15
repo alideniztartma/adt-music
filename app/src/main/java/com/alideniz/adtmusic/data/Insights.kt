@@ -141,8 +141,8 @@ object Insights {
             Badge("memories", "Anı Avcısı", "10 anı bırak", "✦", moments.size, 10),
             Badge("capsule", "Zaman Yolcusu", "Bir zaman kapsülü mühürle", "💌", moments.count { it.moment.revealAt != null }, 1),
             Badge("offline", "Çevrimdışı", "20 şarkı indir", "⬇", downloads, 20),
-            Badge("streak7", "Bir Hafta", "7 gün üst üste müzik dinle", "🔥", streak.longest, 7),
-            Badge("streak30", "Alışkanlık", "30 gün üst üste müzik dinle", "🔥", streak.longest, 30),
+            Badge("streak7", "Bir Hafta", "7 gün üst üste müzik dinle", "📅", streak.longest, 7),
+            Badge("streak30", "Alışkanlık", "30 gün üst üste müzik dinle", "🗓", streak.longest, 30),
             Badge("streak100", "Durdurulamaz", "100 gün üst üste müzik dinle", "💯", streak.longest, 100),
         )
     }
@@ -207,11 +207,11 @@ object Insights {
         val raw = (artistPart * 0.65 + songPart * 0.35).coerceIn(0.0, 1.0)
         val percent = (sqrt(raw) * 100).toInt().coerceIn(if (raw > 0) 8 else 0, 99)
         val label = when {
-            percent >= 85 -> "Ruh ikizi"
-            percent >= 65 -> "Çok uyumlu"
-            percent >= 40 -> "Uyumlu"
-            percent >= 20 -> "Farklı ama ilginç"
-            else -> "Bambaşka dünyalar"
+            percent >= 85 -> "Aynı frekans: ses ikizisiniz"
+            percent >= 65 -> "Güçlü sinyal"
+            percent >= 40 -> "Frekanslar kesişiyor"
+            percent >= 20 -> "Farklı bantlar, ilginç parazit"
+            else -> "Bambaşka istasyonlar"
         }
         return Compatibility(
             percent = percent,

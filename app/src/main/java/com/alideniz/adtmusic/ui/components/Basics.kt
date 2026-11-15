@@ -80,9 +80,11 @@ fun Modifier.press(
     role: Role? = Role.Button,
     label: String? = null,
     onLongClick: (() -> Unit)? = null,
+    interactionSource: MutableInteractionSource? = null,
     onClick: () -> Unit,
 ): Modifier = composed {
-    val source = remember { MutableInteractionSource() }
+    val own = remember { MutableInteractionSource() }
+    val source = interactionSource ?: own
     val pressed by source.collectIsPressedAsState()
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val hapticsOn = LocalHapticsEnabled.current

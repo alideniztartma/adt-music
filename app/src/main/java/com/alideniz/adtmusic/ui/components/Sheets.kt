@@ -116,6 +116,8 @@ fun SheetHost(ui: AppUi) {
                     is SheetSpec.Capsule -> com.alideniz.adtmusic.ui.screens.CapsuleContent(s, ui)
                     SheetSpec.Update -> com.alideniz.adtmusic.ui.screens.UpdateContent(ui)
                     is SheetSpec.Confirm -> ConfirmContent(s, ui)
+                    is SheetSpec.EditPlaylist -> com.alideniz.adtmusic.ui.screens.EditPlaylistContent(s, ui)
+                    is SheetSpec.PlaylistCover -> com.alideniz.adtmusic.ui.screens.PlaylistCoverContent(s, ui)
                     is SheetSpec.Comments -> com.alideniz.adtmusic.ui.screens.CommentsContent(s, ui)
                     is SheetSpec.SongInfo -> com.alideniz.adtmusic.ui.screens.SongInfoContent(s, ui)
                     is SheetSpec.LyricCard -> com.alideniz.adtmusic.ui.screens.LyricCardContent(s, ui)

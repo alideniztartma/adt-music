@@ -192,6 +192,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        runCatching { c.dataUsage.flush() }
         flushPlayTime()
         saveQueue()
         c.sleepTimer.detach()
@@ -266,8 +267,10 @@ class PlaybackService : MediaLibraryService() {
         playStartedAt = 0
         if (ms in 1..6 * 3600_000L) scope.launch {
             runCatching {
-                c.dao.addPlayTime(id, ms)
-                if (!c.settings.pauseHistory.value) c.dao.addListened(id, ms)
+                if (!c.settings.pauseHistory.value) {
+                    c.dao.addPlayTime(id, ms)
+                    c.dao.addListened(id, ms)
+                }
             }
         }
     }

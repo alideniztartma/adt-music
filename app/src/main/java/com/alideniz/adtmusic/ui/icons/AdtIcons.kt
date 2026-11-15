@@ -136,6 +136,12 @@ object AdtIcons {
         ),
     )
     val Badge = stroke("badge", "M12 3a6 6 0 1 1 0 12a6 6 0 1 1 0-12z", "M8.5 14L7 21l5-3 5 3-1.5-7")
+    /** Frekans: iki dalga */
+    val Frequency = stroke("frequency", "M2 12h3l2-6 3 12 3-9 2 6 2-3h5")
+    val Incognito = stroke("incognito", "M3 11h18", "M6 11l2-6h8l2 6", "M7.5 18.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z", "M16.5 18.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z", "M10 16h4")
+    val Bluetooth = stroke("bluetooth", "M7 7l10 10-5 4V3l5 4L7 17")
+    val Volume = stroke("volume", "M4 9h4l5-4v14l-5-4H4z", "M16 9a4 4 0 0 1 0 6", "M18.5 6.5a7.5 7.5 0 0 1 0 11")
+    val VolumeLow = stroke("volumeLow", "M4 9h4l5-4v14l-5-4H4z")
     val Comment = stroke("comment", "M4 4.5h16v11.5H9.5L4 20.5z", "M8 9h8", "M8 12.5h5")
     val Info = stroke("info", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M12 11v6", "M12 7.5v.5")
     val Quote = mixed("quote", strokes = emptyList(), fills = listOf("M4 10a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2h2v6H4z", "M13 10a4 4 0 0 1 4-4v2a2 2 0 0 0-2 2h2v6h-4z"))

@@ -55,6 +55,7 @@ import com.alideniz.adtmusic.ui.components.Line
 import com.alideniz.adtmusic.ui.components.LoadingBlock
 import com.alideniz.adtmusic.ui.components.MessageBlock
 import com.alideniz.adtmusic.ui.components.SectionTitle
+import com.alideniz.adtmusic.ui.components.press
 import com.alideniz.adtmusic.ui.components.SongRow
 import com.alideniz.adtmusic.ui.components.Txt
 import com.alideniz.adtmusic.ui.icons.AdtIcons
@@ -188,6 +189,13 @@ fun CollectionScreen(url: String, kind: CollectionKind) {
                     onPlay = { app.player.play(d.songs, it) },
                     onMore = { ui.show(SheetSpec.SongOptions(it)) },
                 )
+                if (kind == CollectionKind.ALBUM) {
+                    item {
+                        Spacer(Modifier.height(24.dp))
+                        val artist = d.subtitle.removeSuffix(" - Topic").ifBlank { d.songs.firstOrNull()?.artist.orEmpty() }
+                        AlbumBio(d.title.removePrefix("Album - ").removePrefix("Albüm - "), artist)
+                    }
+                }
             }
         }
         item { Spacer(Modifier.height(LocalBottomInset.current + 24.dp)) }
@@ -243,6 +251,8 @@ fun ArtistScreen(name: String, thumb: String?) {
                         Btn("Radyo", { d.songs.firstOrNull()?.let { app.player.playRadio(it) } }, icon = AdtIcons.Radio, style = BtnStyle.ACCENT)
                         Btn("Karıştır", { app.player.play(d.songs, shuffle = true) }, icon = AdtIcons.Shuffle, style = BtnStyle.OUTLINE)
                     }
+                    Spacer(Modifier.height(20.dp))
+                    ArtistBio(name)
                     Spacer(Modifier.height(28.dp))
                     SectionTitle(
                         "Popüler",
@@ -367,10 +377,16 @@ fun LocalPlaylistScreen(id: Long) {
             ) {
                 IconBtn(AdtIcons.Back, "Geri", { ui.back() })
                 Spacer(Modifier.weight(1f))
-                IconBtn(AdtIcons.Edit, "Yeniden adlandır", {
-                    ui.show(SheetSpec.Input("Listeyi yeniden adlandır", name, "Kaydet") { new ->
-                        if (new.isNotBlank()) scope.launch { app.dao.renamePlaylist(id, new) }
-                    })
+                IconBtn(AdtIcons.Palette, "Kapak oluştur", {
+                    ui.show(
+                        SheetSpec.PlaylistCover(
+                            id, name, songs.size, songs.map { it.thumbnail }.take(12),
+                            hasCustom = playlist?.coverPath != null,
+                        )
+                    )
+                })
+                IconBtn(AdtIcons.Edit, "Düzenle", {
+                    ui.show(SheetSpec.EditPlaylist(id, name, playlist?.description.orEmpty()))
                 })
                 IconBtn(AdtIcons.Trash, "Listeyi sil", {
                     ui.show(SheetSpec.Confirm("Liste silinsin mi?", "\"$name\" kalıcı olarak silinecek. Şarkılar beğenilerinde ve indirmelerinde kalır.", "Sil") {
@@ -380,12 +396,44 @@ fun LocalPlaylistScreen(id: Long) {
                 })
             }
             Column(Modifier.padding(horizontal = 20.dp)) {
-                MosaicCover(songs.map { it.thumbnail }, Modifier.size(200.dp))
+                val customCover = playlist?.coverPath
+                val coverModifier = Modifier.size(200.dp).press(label = "Kapak oluştur") {
+                    ui.show(
+                        SheetSpec.PlaylistCover(
+                            id, name, songs.size, songs.map { it.thumbnail }.take(12),
+                            hasCustom = customCover != null,
+                        )
+                    )
+                }
+                if (customCover != null) Cover(customCover, coverModifier)
+                else MosaicCover(songs.map { it.thumbnail }, coverModifier)
                 Spacer(Modifier.height(18.dp))
                 Txt("ÇALMA LİSTEN", AdtTheme.type.label, color = c.accent)
                 Spacer(Modifier.height(6.dp))
                 Txt(name, AdtTheme.type.display, maxLines = 3)
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
+                val description = playlist?.description.orEmpty()
+                if (description.isNotBlank()) {
+                    Txt(
+                        description,
+                        AdtTheme.type.body,
+                        color = c.ink,
+                        modifier = Modifier.press(label = "Açıklamayı düzenle") {
+                            ui.show(SheetSpec.EditPlaylist(id, name, description))
+                        },
+                    )
+                    Spacer(Modifier.height(8.dp))
+                } else if (playlist != null) {
+                    Txt(
+                        "+ AÇIKLAMA EKLE",
+                        AdtTheme.type.label,
+                        color = c.faint,
+                        modifier = Modifier
+                            .press(label = "Açıklama ekle") { ui.show(SheetSpec.EditPlaylist(id, name, "")) }
+                            .padding(vertical = 4.dp),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
                 val total = songs.sumOf { it.durationSec.coerceAtLeast(0) }
                 Txt(
                     listOfNotNull("${songs.size} şarkı", formatDuration(total).ifBlank { null }).joinToString(" · "),

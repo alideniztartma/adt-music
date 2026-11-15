@@ -166,7 +166,7 @@ fun BadgesScreen() {
                             Txt("gün", AdtTheme.type.title, color = c.paper, modifier = Modifier.padding(bottom = 10.dp))
                         }
                         Txt(
-                            if (streak.listenedToday) "Bugünkü dinlemeni yaptın 🔥" else "Seriyi korumak için bugün bir şarkı dinle!",
+                            if (streak.listenedToday) "Bugünkü dinlemeni yaptın ✓" else "Seriyi korumak için bugün bir şarkı dinle!",
                             AdtTheme.type.caption, color = c.paper.copy(alpha = 0.75f),
                         )
                     }
@@ -224,7 +224,7 @@ private fun BadgeCard(b: Badge, modifier: Modifier) {
     }
 }
 
-// ------------------------------------------------------------------ zevk karşılaştırma
+// ------------------------------------------------------------------ Frekans (arkadaşla eşleşme)
 
 private fun qrBitmap(text: String, size: Int = 640, dark: Int, light: Int): Bitmap {
     val hints = mapOf(EncodeHintType.MARGIN to 1)
@@ -257,9 +257,9 @@ fun TasteScreen() {
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
-            ScreenHeader("Zevk karşılaştır", "Arkadaşınla müzik uyumunuzu ölç", onBack = { ui.back() })
+            ScreenHeader("Frekans", "Arkadaşınla aynı frekansta mısınız?", onBack = { ui.back() })
             Column(Modifier.padding(horizontal = 20.dp)) {
-                Txt("SENİN KODUN", AdtTheme.type.label, color = c.muted)
+                Txt("SENİN FREKANSIN", AdtTheme.type.label, color = c.muted)
                 Spacer(Modifier.height(8.dp))
                 TextInput(
                     value = name,
@@ -271,13 +271,13 @@ fun TasteScreen() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(150.dp).clip(AdtTheme.shape).background(c.surface), contentAlignment = Alignment.Center) {
                         val b = qr
-                        if (b != null) Image(b.asImageBitmap(), "Zevk kodu QR", Modifier.fillMaxSize().padding(6.dp))
+                        if (b != null) Image(b.asImageBitmap(), "Frekans QR kodu", Modifier.fillMaxSize().padding(6.dp))
                         else LoadingBlock()
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Txt("Kodunu arkadaşına gönder ya da QR'ı göster. O da kendi kodunu sana yollasın.", AdtTheme.type.caption, color = c.muted)
-                        Btn("Paylaş", { myCode?.let { shareText(context, "ADT Music zevk kodum", "ADT Music'te müzik uyumumuza bakalım! Kodum:\n\n$it") } }, Modifier.fillMaxWidth(), icon = AdtIcons.Share, style = BtnStyle.INK, height = 42.dp)
+                        Btn("Paylaş", { myCode?.let { shareText(context, "ADT Music frekansım", "ADT Music'te aynı frekansta mıyız? Frekans kodum:\n\n$it") } }, Modifier.fillMaxWidth(), icon = AdtIcons.Share, style = BtnStyle.INK, height = 42.dp)
                         Btn("Kopyala", {
                             myCode?.let {
                                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -290,7 +290,7 @@ fun TasteScreen() {
                 Spacer(Modifier.height(24.dp))
                 Line()
                 Spacer(Modifier.height(16.dp))
-                Txt("ARKADAŞININ KODU", AdtTheme.type.label, color = c.muted)
+                Txt("ARKADAŞININ FREKANSI", AdtTheme.type.label, color = c.muted)
                 Spacer(Modifier.height(8.dp))
                 TextInput(
                     value = friendCode,
@@ -299,13 +299,13 @@ fun TasteScreen() {
                     style = AdtTheme.type.bodyStrong,
                 )
                 Spacer(Modifier.height(10.dp))
-                Btn("Karşılaştır", {
+                Btn("Frekansları eşleştir", {
                     val friend = Insights.decode(friendCode.substringAfter("ADT1:").let { "ADT1:$it" }.trim())
                     if (friend == null) { error = "Kod okunamadı. Tamamını kopyaladığından emin ol."; return@Btn }
                     val code = myCode ?: return@Btn
                     val me = Insights.decode(code) ?: return@Btn
                     result = Insights.compare(me, friend)
-                }, Modifier.fillMaxWidth(), icon = AdtIcons.Following, style = BtnStyle.ACCENT)
+                }, Modifier.fillMaxWidth(), icon = AdtIcons.Frequency, style = BtnStyle.ACCENT)
                 error?.let { Spacer(Modifier.height(8.dp)); Txt(it, AdtTheme.type.bodyStrong, color = c.accent) }
             }
         }

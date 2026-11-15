@@ -45,6 +45,7 @@ object Backup {
                 put(JSONObject().apply {
                     put("name", p.name)
                     put("sourceUrl", p.sourceUrl ?: "")
+                    put("description", p.description)
                     put("songs", JSONArray().apply { dao.playlistSongsOnce(p.id).forEach { put(it.toSong().json()) } })
                 })
             }
@@ -86,7 +87,7 @@ object Backup {
                 val o = arr.getJSONObject(i)
                 val songsArr = o.optJSONArray("songs") ?: JSONArray()
                 val songs = (0 until songsArr.length()).map { songsArr.getJSONObject(it).song() }
-                dao.createPlaylistWith(o.optString("name", "Liste"), songs, o.optString("sourceUrl").ifBlank { null })
+                dao.createPlaylistWith(o.optString("name", "Liste"), songs, o.optString("sourceUrl").ifBlank { null }, o.optString("description"))
                 count++
             }
         }

@@ -124,6 +124,7 @@ fun HomeScreen() {
     val showTrending by app.settings.homeShowTrending.flow.collectAsState()
     val showAlbums by app.settings.homeShowAlbums.flow.collectAsState()
     val totalPlays by remember { app.dao.totalPlays() }.collectAsState(initial = 0)
+    val incognito by app.settings.pauseHistory.flow.collectAsState()
     val insights by androidx.compose.runtime.produceState<Pair<com.alideniz.adtmusic.data.Streak, com.alideniz.adtmusic.data.Weekly>?>(null, totalPlays) {
         val rows = app.dao.historySince(System.currentTimeMillis() - 400L * 86_400_000L)
         value = com.alideniz.adtmusic.data.Insights.streak(rows) to com.alideniz.adtmusic.data.Insights.weekly(rows)
@@ -141,7 +142,22 @@ fun HomeScreen() {
             ) {
                 Wordmark()
                 Spacer(Modifier.width(12.dp))
-                insights?.first?.let { StreakChip(it) { ui.navigate(Routes.BADGES) } }
+                if (incognito) {
+                    Row(
+                        Modifier
+                            .background(c.ink)
+                            .press(label = "Gizli modu kapat") {
+                                app.settings.pauseHistory.set(false)
+                                app.toast("Gizli mod kapandı")
+                            }
+                            .padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AdtIcon(AdtIcons.Incognito, null, tint = c.paper, size = 14.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Txt("GİZLİ", AdtTheme.type.label, color = c.paper)
+                    }
+                }
                 Spacer(Modifier.weight(1f))
                 IconBtn(AdtIcons.Refresh, "Yenile", { vm.load() })
                 IconBtn(AdtIcons.Settings, "Ayarlar", { ui.navigate(Routes.SETTINGS) })

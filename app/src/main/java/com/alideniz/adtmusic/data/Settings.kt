@@ -46,6 +46,13 @@ class Settings(context: Context) {
     /** "high", "normal" veya "low" */
     val audioQuality = Pref("audio_quality", "high")
     val mobileDataSaver = Pref("mobile_data_saver", false)
+    /** Mobil veride kalite: "same" (Wi-Fi ile aynı), "high", "normal", "low" */
+    val mobileQuality = Pref("mobile_quality", "same")
+    val dataMonth = Pref("data_month", "")
+    val dataMobileBytes = Pref("data_mobile_bytes", 0L)
+    val dataWifiBytes = Pref("data_wifi_bytes", 0L)
+    /** Bluetooth ses cihazı bağlanınca kaldığı yerden çal. */
+    val btAutoPlay = Pref("bt_auto_play", false)
     val preloadNext = Pref("preload_next", true)
     val pauseOnDisconnect = Pref("pause_on_disconnect", true)
     val autoplay = Pref("autoplay", true)
@@ -108,6 +115,27 @@ class Settings(context: Context) {
     val artistUrls = Pref("artist_urls", "{}")
     /** sanatçı adı → son görülen video kimliği (JSON) */
     val artistLastSeen = Pref("artist_last_seen", "{}")
+
+    // Oynatıcı düzeni
+    /** "minimal" veya "apple" */
+    val playerStyle = Pref("player_style", "minimal")
+    /** "large", "medium", "small" veya "none" (kapaksız) */
+    val coverSize = Pref("cover_size", "large")
+    /** "button" (ayrı ekran), "preview" (kapak altında canlı satır) veya "auto" (otomatik aç) */
+    val lyricsPlacement = Pref("lyrics_placement", "button")
+    val playerVolumeBar = Pref("player_volume_bar", true)
+    /** Uygulama simgesi vurgu rengini izlesin. */
+    val iconFollowsAccent = Pref("icon_follows_accent", true)
+
+    // Söz görünümü
+    /** "extrabold", "bold" veya "medium" */
+    val lyricsWeight = Pref("lyrics_weight", "extrabold")
+    /** "tight", "normal" veya "wide" */
+    val lyricsSpacing = Pref("lyrics_spacing", "normal")
+    val lyricsUppercase = Pref("lyrics_uppercase", false)
+    /** "accent" veya "ink": çalan satırın vurgu rengi */
+    val lyricsHighlight = Pref("lyrics_highlight", "accent")
+    val lyricsBlur = Pref("lyrics_blur", false)
 
     // Oynatıcı görselleri
     /** "off", "bars" veya "wave" */

@@ -48,6 +48,9 @@ data class PlaylistEntity(
     val name: String,
     val createdAt: Long = System.currentTimeMillis(),
     val sourceUrl: String? = null,
+    @ColumnInfo(defaultValue = "") val description: String = "",
+    /** Oluşturulan kapak görselinin dosya yolu (yoksa şarkı kapakları kullanılır). */
+    val coverPath: String? = null,
 )
 
 @Entity(tableName = "playlist_songs", primaryKeys = ["playlistId", "songId"])
@@ -210,8 +213,8 @@ abstract class AdtDao {
         """
         SELECT p.*,
           (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlistId = p.id) AS songCount,
-          (SELECT s.thumbnail FROM playlist_songs ps INNER JOIN songs s ON s.id = ps.songId
-             WHERE ps.playlistId = p.id ORDER BY ps.position LIMIT 1) AS cover
+          COALESCE(p.coverPath, (SELECT s.thumbnail FROM playlist_songs ps INNER JOIN songs s ON s.id = ps.songId
+             WHERE ps.playlistId = p.id ORDER BY ps.position LIMIT 1)) AS cover
         FROM playlists p ORDER BY p.createdAt DESC
         """
     )
@@ -231,6 +234,12 @@ abstract class AdtDao {
 
     @Query("UPDATE playlists SET name = :name WHERE id = :id")
     abstract suspend fun renamePlaylist(id: Long, name: String)
+
+    @Query("UPDATE playlists SET description = :text WHERE id = :id")
+    abstract suspend fun setPlaylistDescription(id: Long, text: String)
+
+    @Query("UPDATE playlists SET coverPath = :path WHERE id = :id")
+    abstract suspend fun setPlaylistCover(id: Long, path: String?)
 
     @Query("DELETE FROM playlists WHERE id = :id")
     abstract suspend fun deletePlaylistRow(id: Long)
@@ -265,8 +274,8 @@ abstract class AdtDao {
     }
 
     @Transaction
-    open suspend fun createPlaylistWith(name: String, songs: List<Song>, sourceUrl: String?): Long {
-        val id = insertPlaylist(PlaylistEntity(name = name, sourceUrl = sourceUrl))
+    open suspend fun createPlaylistWith(name: String, songs: List<Song>, sourceUrl: String?, description: String = ""): Long {
+        val id = insertPlaylist(PlaylistEntity(name = name, sourceUrl = sourceUrl, description = description))
         songs.forEach { addToPlaylist(id, it) }
         return id
     }
@@ -373,7 +382,7 @@ abstract class AdtDao {
         HistoryEntity::class, SearchHistoryEntity::class, LyricsEntity::class,
         FollowedArtistEntity::class, MomentEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AdtDatabase : RoomDatabase() {
@@ -382,9 +391,17 @@ abstract class AdtDatabase : RoomDatabase() {
     companion object {
         fun create(context: Context): AdtDatabase =
             Room.databaseBuilder(context, AdtDatabase::class.java, "adt_music.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
+
+        /** 1.4: çalma listesi açıklaması ve oluşturulan kapak. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `playlists` ADD COLUMN `description` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `playlists` ADD COLUMN `coverPath` TEXT")
+            }
+        }
 
         /** 1.2: gerçek dinleme süresi ve Music Moments. Mevcut veriler korunur. */
         val MIGRATION_2_3 = object : Migration(2, 3) {

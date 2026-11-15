@@ -93,8 +93,10 @@ class AppContainer(val context: Context) {
     val lyrics = LyricsRepository(httpClient, dao)
     val mixes = com.alideniz.adtmusic.data.Mixes(dao, youtube)
     val updater = com.alideniz.adtmusic.data.Updater(context, httpClient, settings)
+    val wiki = com.alideniz.adtmusic.data.Wiki(context, httpClient)
 
-    val media = MediaStack(context, settings, youtube, httpClient)
+    val dataUsage = com.alideniz.adtmusic.playback.DataUsage(context, settings)
+    val media = MediaStack(context, settings, youtube, httpClient, dataUsage)
     val downloads = DownloadTracker(context, media, settings, dao, appScope)
     val effects = AudioEffects(settings)
     val spectrum = com.alideniz.adtmusic.playback.Spectrum(context)
