@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 660" width="1280" height="660">
+  <style>
+    .t{font-family:'Archivo Black','Arial Black','Helvetica Neue',Arial,sans-serif;font-weight:900}
+    .s{font-family:'Helvetica Neue',Arial,sans-serif}
+    .fill{animation:fill 4s linear infinite}
+    @keyframes fill{from{width:0}to{width:250px}}
+    .prog{animation:prog 12s linear infinite}
+    @keyframes prog{from{width:20px}to{width:250px}}
+    .pulse{transform-box:fill-box;transform-origin:center;animation:pulse 1.6s ease-in-out infinite}
+    @keyframes pulse{50%{transform:scale(.96)}}
+  </style>
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5A1F"/><stop offset="1" stop-color="#8A5CFF"/></linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1640"/><stop offset="1" stop-color="#111111"/></linearGradient>
+    <clipPath id="c1"><rect x="0" y="0" width="300" height="600" rx="34"/></clipPath>
+  </defs>
+  <rect width="1280" height="660" fill="#F4F2EE"/>
+
+  <!-- ===== 1. Minimal oynatıcı ===== -->
+  <g transform="translate(110 30)">
+    <rect x="-8" y="-8" width="316" height="616" rx="42" fill="#111"/>
+    <g clip-path="url(#c1)">
+      <rect width="300" height="600" fill="#F4F2EE"/>
+      <text x="24" y="52" class="s" font-size="11" letter-spacing="3" fill="#111" fill-opacity=".5">ŞİMDİ ÇALIYOR</text>
+      <rect x="24" y="72" width="252" height="252" fill="url(#g1)" class="pulse"/>
+      <g transform="translate(150 198) scale(3) translate(-68 -68)" fill="#111" fill-opacity=".85">
+        <path d="M69.328,71.367 A3.84,2.88 -20 1,1 62.112,73.993 A3.84,2.88 -20 1,1 69.328,71.367 Z M68.12,60.44 H69.44 V72.92 H68.12 Z M69.44,60.44 C69.44,64.04 74.12,65.24 73.16,70.28 C72.68,67.4 71.24,66.2 69.44,66.2 Z"/>
+      </g>
+      <text x="24" y="368" class="t" font-size="26" fill="#111">ŞARKI ADI</text>
+      <text x="24" y="392" class="s" font-size="15" fill="#111" fill-opacity=".6">Sanatçı</text>
+      <path d="M262 362c-6-8-18-4-18 4 0 8 18 18 18 18s18-10 18-18c0-8-12-12-18-4z" fill="#FF5A1F" transform="translate(-6 14) scale(.9)"/>
+      <rect x="24" y="420" width="252" height="3" fill="#111" fill-opacity=".15"/>
+      <rect x="24" y="420" width="20" height="3" fill="#FF5A1F" class="prog"/>
+      <!-- anı işaretleri -->
+      <rect x="92" y="412" width="3" height="7" fill="#FF4D8D"/><rect x="190" y="412" width="3" height="7" fill="#B07CFF"/>
+      <text x="24" y="444" class="s" font-size="11" fill="#111" fill-opacity=".5">1:12</text>
+      <text x="276" y="444" text-anchor="end" class="s" font-size="11" fill="#111" fill-opacity=".5">3:41</text>
+      <!-- kontroller -->
+      <g fill="#111">
+        <path d="M70 490l22-14v28zM66 476h4v28h-4z"/>
+        <rect x="122" y="462" width="56" height="56" fill="#111"/>
+        <rect x="140" y="478" width="7" height="24" fill="#F4F2EE"/><rect x="153" y="478" width="7" height="24" fill="#F4F2EE"/>
+        <path d="M230 490l-22-14v28zM230 476h4v28h-4z"/>
+      </g>
+      <g fill="#111" fill-opacity=".45" class="s" font-size="11">
+        <text x="24" y="566">SÖZLER</text><text x="150" y="566" text-anchor="middle">SIRA</text><text x="276" y="566" text-anchor="end">EKOLAYZER</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ===== 2. Senkron sözler ===== -->
+  <g transform="translate(490 30)">
+    <rect x="-8" y="-8" width="316" height="616" rx="42" fill="#111"/>
+    <g clip-path="url(#c1)">
+      <rect width="300" height="600" fill="url(#g2)"/>
+      <text x="24" y="52" class="s" font-size="11" letter-spacing="3" fill="#F4F2EE" fill-opacity=".5">SÖZLER · KELİME KELİME</text>
+      <g class="t" font-size="25">
+        <text x="24" y="130" fill="#F4F2EE" fill-opacity=".25">Bir önceki satır</text>
+        <text x="24" y="162" fill="#F4F2EE" fill-opacity=".25">burada solar</text>
+        <!-- aktif satır: soldan sağa dolar -->
+        <defs><clipPath id="lf"><rect class="fill" x="24" y="185" width="0" height="80"/></clipPath></defs>
+        <text x="24" y="214" fill="#F4F2EE" fill-opacity=".35">Çalan satır</text>
+        <text x="24" y="246" fill="#F4F2EE" fill-opacity=".35">soldan dolar</text>
+        <g clip-path="url(#lf)" fill="#FF5A1F">
+          <text x="24" y="214">Çalan satır</text>
+          <text x="24" y="246">soldan dolar</text>
+        </g>
+        <text x="24" y="298" fill="#F4F2EE" fill-opacity=".25">Dokun, şarkı</text>
+        <text x="24" y="330" fill="#F4F2EE" fill-opacity=".25">o ana atlasın</text>
+        <text x="24" y="382" fill="#F4F2EE" fill-opacity=".12">Sonraki satırlar</text>
+        <text x="24" y="414" fill="#F4F2EE" fill-opacity=".12">sırada bekler</text>
+      </g>
+      <!-- görselleştirici -->
+      <g transform="translate(24 530)" fill="#FF5A1F">
+        <rect x="0" y="-18" width="10" height="18"/><rect x="16" y="-36" width="10" height="36"/><rect x="32" y="-26" width="10" height="26"/>
+        <rect x="48" y="-44" width="10" height="44"/><rect x="64" y="-30" width="10" height="30"/><rect x="80" y="-14" width="10" height="14"/>
+        <rect x="96" y="-24" width="10" height="24" fill-opacity=".6"/><rect x="112" y="-10" width="10" height="10" fill-opacity=".6"/>
+        <rect x="128" y="-18" width="10" height="18" fill-opacity=".4"/><rect x="144" y="-8" width="10" height="8" fill-opacity=".4"/>
+      </g>
+      <text x="24" y="570" class="s" font-size="11" fill="#F4F2EE" fill-opacity=".45">LRCLIB · senkron sözler</text>
+    </g>
+  </g>
+
+  <!-- ===== 3. ADT Wrapped ===== -->
+  <g transform="translate(870 30)">
+    <rect x="-8" y="-8" width="316" height="616" rx="42" fill="#111"/>
+    <g clip-path="url(#c1)">
+      <rect width="300" height="600" fill="#FF5A1F"/>
+      <g fill="#111" fill-opacity=".85"><rect x="20" y="24" width="60" height="3"/></g>
+      <g fill="#111" fill-opacity=".25"><rect x="86" y="24" width="60" height="3"/><rect x="152" y="24" width="60" height="3"/><rect x="218" y="24" width="60" height="3"/></g>
+      <text x="24" y="80" class="s" font-size="11" letter-spacing="3" fill="#111" fill-opacity=".7">ADT WRAPPED</text>
+      <text x="24" y="150" class="t" font-size="32" fill="#111">Bu dönem</text>
+      <text x="24" y="186" class="t" font-size="32" fill="#111">müzikle</text>
+      <text x="24" y="276" class="t" font-size="80" fill="#F4F2EE">∞</text>
+      <text x="24" y="316" class="t" font-size="32" fill="#111">dakika geçti.</text>
+      <g class="s" font-size="15" fill="#111">
+        <text x="24" y="380" font-weight="700">EN ÇOK DİNLEDİKLERİN</text>
+        <text x="24" y="410">01  Şarkı</text><text x="24" y="434">02  Şarkı</text><text x="24" y="458">03  Şarkı</text>
+      </g>
+      <g class="s" font-size="15" fill="#111"><text x="24" y="520">🔥 seri · 🏆 rozet · 💌 kapsül</text></g>
+      <rect x="24" y="544" width="252" height="34" fill="#111"/>
+      <text x="150" y="566" text-anchor="middle" class="s" font-size="12" letter-spacing="3" fill="#F4F2EE">PAYLAŞ</text>
+    </g>
+  </g>
+
+  <g class="s" font-size="13" letter-spacing="3" fill="#111" fill-opacity=".55" text-anchor="middle">
+    <text x="260" y="652">MİNİMAL OYNATICI</text>
+    <text x="640" y="652">CANLI SÖZLER</text>
+    <text x="1020" y="652">ADT WRAPPED</text>
+  </g>
+</svg>

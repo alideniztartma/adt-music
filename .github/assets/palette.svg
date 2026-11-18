@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 200" width="1280" height="200">
+  <style>
+    .s{font-family:'Helvetica Neue',Arial,sans-serif}
+    .sw{transform-box:fill-box;transform-origin:bottom;animation:up 3.2s ease-in-out infinite}
+    @keyframes up{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.82)}}
+  </style>
+  <rect width="1280" height="200" fill="#111111"/>
+  <g class="s" font-size="13" letter-spacing="2" fill="#F4F2EE">
+    <rect class="sw" style="animation-delay:0s"    x="40"   y="30" width="140" height="120" fill="#FF5A1F"/><text fill-opacity=".7" x="40"   y="178">TURUNCU</text>
+    <rect class="sw" style="animation-delay:-.4s"  x="190"  y="30" width="140" height="120" fill="#E5383B"/><text fill-opacity=".7" x="190"  y="178">KIRMIZI</text>
+    <rect class="sw" style="animation-delay:-.8s"  x="340"  y="30" width="140" height="120" fill="#FF4D8D"/><text fill-opacity=".7" x="340"  y="178">PEMBE</text>
+    <rect class="sw" style="animation-delay:-1.2s" x="490"  y="30" width="140" height="120" fill="#8A5CFF"/><text fill-opacity=".7" x="490"  y="178">MOR</text>
+    <rect class="sw" style="animation-delay:-1.6s" x="640"  y="30" width="140" height="120" fill="#2F6BFF"/><text fill-opacity=".7" x="640"  y="178">MAVİ</text>
+    <rect class="sw" style="animation-delay:-2s"   x="790"  y="30" width="140" height="120" fill="#00A6A6"/><text fill-opacity=".7" x="790"  y="178">TURKUAZ</text>
+    <rect class="sw" style="animation-delay:-2.4s" x="940"  y="30" width="140" height="120" fill="#18B36B"/><text fill-opacity=".7" x="940"  y="178">YEŞİL</text>
+    <rect class="sw" style="animation-delay:-2.8s" x="1090" y="30" width="140" height="120" fill="#FFB400"/><text fill-opacity=".7" x="1090" y="178">SARI</text>
+  </g>
+</svg>
