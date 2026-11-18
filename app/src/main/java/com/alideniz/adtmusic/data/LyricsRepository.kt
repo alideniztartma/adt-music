@@ -26,7 +26,10 @@ class LyricsRepository(
         dao.lyrics(song.id)?.let { cached ->
             return@withContext cached.toLyrics()
         }
-        val fetched = runCatching { fetch(song) }.getOrNull()
+        // Ağ / sunucu hatasında kaydetme: sonraki açılışta yeniden denensin
+        val fetched = try { fetch(song) } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {
+            return@withContext null
+        }
         dao.saveLyrics(
             LyricsEntity(
                 songId = song.id,
@@ -95,7 +98,8 @@ class LyricsRepository(
             .header("User-Agent", "ADT Music (https://github.com/alideniztartma)")
             .build()
         client.newCall(req).execute().use { res ->
-            if (!res.isSuccessful) return null
+            if (res.code == 404) return null // gerçekten bulunamadı
+            if (!res.isSuccessful) throw java.io.IOException("LRCLIB ${res.code}")
             return res.body?.string()
         }
     }

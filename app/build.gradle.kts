@@ -13,8 +13,8 @@ android {
         applicationId = "com.alideniz.adtmusic"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.4.2"
+        versionCode = 10
+        versionName = "1.5.0"
         // GitHub Actions derleme numarası: uygulama içi güncelleme bununla karşılaştırır.
         buildConfigField("int", "BUILD_NUMBER", System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }

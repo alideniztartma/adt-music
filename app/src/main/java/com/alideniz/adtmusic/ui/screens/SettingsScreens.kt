@@ -120,7 +120,7 @@ fun EqualizerScreen() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Txt(
-                    if (band.centerHz >= 1000) "${band.centerHz / 1000} kHz" else "${band.centerHz} Hz",
+                    if (band.centerHz >= 1000) { val k = band.centerHz / 1000f; if (k % 1f == 0f) "${k.toInt()} kHz" else "%.1f kHz".format(k) } else "${band.centerHz} Hz",
                     AdtTheme.type.caption, color = c.muted, modifier = Modifier.width(64.dp),
                 )
                 AdtSlider(
@@ -906,7 +906,7 @@ fun UpdateContent(ui: com.alideniz.adtmusic.ui.AppUi) {
                             app.toast("Önce ADT Music'e uygulama yükleme izni ver, sonra tekrar dokun")
                             app.updater.openInstallPermission()
                         } else {
-                            scope.launch {
+                            app.appScope.launch {
                                 runCatching { app.updater.downloadAndInstall(i) }
                                     .onFailure { app.toast("Güncelleme indirilemedi") }
                             }

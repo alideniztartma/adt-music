@@ -652,6 +652,7 @@ fun LyricLinePreview(song: Song, progress: Progress, onOpen: () -> Unit) {
     val app = LocalContext.current.container
     val c = AdtTheme.colors
     val lyrics by produceState<com.alideniz.adtmusic.data.Lyrics?>(null, song.id) {
+        value = null // önceki şarkının sözleri yeni şarkıda kaymasın
         value = runCatching { app.lyrics.lyricsFor(song) }.getOrNull()
     }
     val l = lyrics ?: return

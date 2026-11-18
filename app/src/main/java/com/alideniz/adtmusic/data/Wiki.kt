@@ -58,7 +58,9 @@ class Wiki(private val context: Context, private val client: OkHttpClient) {
             synchronized(memory) { memory[key] = bio }
             return bio
         }
-        val bio = runCatching { load() }.getOrNull()
+        val bio = try { load() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {
+            return null // ağ hatası: "biyografi yok" diye önbelleğe yazma, sonra tekrar denensin
+        }
         runCatching { file.writeText(bio?.let { toJson(it) }?.toString() ?: "{}") }
         synchronized(memory) { memory[key] = bio }
         return bio

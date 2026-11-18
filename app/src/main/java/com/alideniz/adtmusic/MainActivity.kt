@@ -107,6 +107,7 @@ import com.alideniz.adtmusic.ui.theme.AdtOrange
 import com.alideniz.adtmusic.ui.theme.AdtTheme
 import com.alideniz.adtmusic.ui.theme.rememberCoverAccent
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -117,7 +118,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        handleIntent(intent)
+        // Döndürme / tema değişiminde aynı bağlantı ya da kısayol yeniden işlenmesin
+        if (savedInstanceState == null) handleIntent(intent)
         container.player.connect()
 
         setContent {
@@ -297,7 +299,10 @@ private fun AdtRoot(
 
     // Bildirim izni (Android 13+): çalma kontrolleri bildirimde görünsün.
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    // Açılış işleri yalnızca bir kez (döndürmede tekrar etmesin)
+    var startupDone by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
+        if (startupDone) return@LaunchedEffect
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -310,10 +315,10 @@ private fun AdtRoot(
     // Ana ekran kısayolları
     LaunchedEffect(shortcut) {
         val sc = shortcut ?: return@LaunchedEffect
-        onShortcutHandled()
+        onShortcutHandled() // anahtar null olur, bu efekt iptal edilir: askıya alan iş appScope'ta
         when (sc) {
             "search" -> ui.navigate(Routes.SEARCH)
-            "shuffle_liked" -> {
+            "shuffle_liked" -> app.appScope.launch {
                 val liked = app.dao.likedSongsOnce().map { it.toSong() }
                 if (liked.isNotEmpty()) { app.player.play(liked, shuffle = true); ui.openPlayer() }
                 else app.toast("Henüz beğendiğin şarkı yok")
@@ -325,7 +330,9 @@ private fun AdtRoot(
 
     // Zaman kapsülleri ve güncelleme denetimi (açılışta)
     LaunchedEffect(Unit) {
+        if (startupDone) return@LaunchedEffect
         kotlinx.coroutines.delay(1500)
+        startupDone = true
         val due = runCatching { app.dao.dueCapsules(System.currentTimeMillis()) }.getOrDefault(emptyList())
         if (due.isNotEmpty()) {
             val first = due.first()
@@ -356,9 +363,11 @@ private fun AdtRoot(
         val list = YouTubeRepository.playlistIdOf(link)
         val video = YouTubeRepository.videoIdOf(link)
         when {
-            video != null -> runCatching { app.youtube.song(video) }
-                .onSuccess { app.player.playRadio(it); ui.openPlayer() }
-                .onFailure { app.toast("Bağlantı açılamadı") }
+            video != null -> app.appScope.launch {
+                runCatching { app.youtube.song(video) }
+                    .onSuccess { app.player.playRadio(it); ui.openPlayer() }
+                    .onFailure { if (it !is kotlinx.coroutines.CancellationException) app.toast("Bağlantı açılamadı") }
+            }
             list != null -> ui.navigate(
                 Routes.collection("https://www.youtube.com/playlist?list=$list", CollectionKind.PLAYLIST)
             )

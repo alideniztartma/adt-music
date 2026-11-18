@@ -4,7 +4,7 @@
 
 <br/>
 
-[![Sürüm](https://img.shields.io/badge/sürüm-1.4.2-FF5A1F?style=for-the-badge&labelColor=111111)](https://github.com/alideniztartma/adt-music/releases/latest)
+[![Sürüm](https://img.shields.io/badge/sürüm-1.5.0-FF5A1F?style=for-the-badge&labelColor=111111)](https://github.com/alideniztartma/adt-music/releases/latest)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-F4F2EE?style=for-the-badge&logo=android&logoColor=F4F2EE&labelColor=111111)](#-kurulum)
 [![Kotlin](https://img.shields.io/badge/Kotlin-Compose-F4F2EE?style=for-the-badge&logo=kotlin&logoColor=F4F2EE&labelColor=111111)](#-kaputun-altı)
 [![Lisans](https://img.shields.io/badge/lisans-GPL--3.0-F4F2EE?style=for-the-badge&labelColor=111111)](LICENSE)
@@ -153,6 +153,8 @@ Ve cihazda kendiliğinden güncellenen 6 akıllı liste: *En çok dinlediğim 50
 - **Akıllı önbellek** (512 MB – 4 GB) — yer dolunca en eskisi silinir
 - Çalma listeleri, **kapak oluşturucu**, açıklama düzenleme
 - Gün gün dinleme geçmişi, sanatçı takibi
+- Beğenilenler, İndirilenler, Geçmiş ve listelerde **anında arama** (Türkçe harflere duyarsız)
+- **Spotify / YouTube listesi aktar** — bağlantıyı yapıştır, şarkılar eşleşsin
 - Kütüphaneyi tek JSON dosyasına **yedekle / geri yükle**
 
 </td>

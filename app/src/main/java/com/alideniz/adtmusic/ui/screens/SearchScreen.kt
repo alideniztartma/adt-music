@@ -134,6 +134,9 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         if (submitted.isNotBlank()) runSearch()
     }
 
+    /** Her yeni aramada artar; eski isteklerin sonuçları yok sayılır. */
+    private var generation = 0
+
     private fun runSearch() {
         searchJob?.cancel()
         loading = true
@@ -142,15 +145,20 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         cursor = null
         val q = submitted
         val f = filter
+        val gen = ++generation
         searchJob = viewModelScope.launch {
             runCatching { app.youtube.search(q, f) }
                 .onSuccess {
+                    if (gen != generation) return@onSuccess
                     results = it.items
                     cursor = it.cursor
                     correction = it.correction
                 }
-                .onFailure { error = it.message ?: "Arama başarısız" }
-            loading = false
+                .onFailure {
+                    // İptal edilen eski arama yeni aramanın üstüne hata yazmasın
+                    if (gen == generation && it !is kotlinx.coroutines.CancellationException) error = it.message ?: "Arama başarısız"
+                }
+            if (gen == generation) loading = false
         }
     }
 
@@ -159,9 +167,12 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         if (loadingMore || loading || !cur.hasMore) return
         loadingMore = true
         val f = filter
+        val gen = generation
         viewModelScope.launch {
             runCatching { app.youtube.searchMore(cur, f) }
                 .onSuccess { page ->
+                    // Bu arada yeni bir arama başladıysa eski sayfayı ekleme
+                    if (gen != generation) return@onSuccess
                     val existing = results
                     results = existing + page.items
                     cursor = page.cursor

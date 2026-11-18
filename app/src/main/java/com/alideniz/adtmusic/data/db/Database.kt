@@ -140,7 +140,7 @@ abstract class AdtDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     abstract suspend fun insertSongIgnore(song: SongEntity)
 
-    @Query("UPDATE songs SET title = :title, artist = :artist, thumbnail = :thumbnail, duration = CASE WHEN :duration > 0 THEN :duration ELSE duration END, artistUrl = COALESCE(:artistUrl, artistUrl) WHERE id = :id")
+    @Query("UPDATE songs SET title = CASE WHEN :title != '' THEN :title ELSE title END, artist = CASE WHEN :artist != '' THEN :artist ELSE artist END, thumbnail = COALESCE(:thumbnail, thumbnail), duration = CASE WHEN :duration > 0 THEN :duration ELSE duration END, artistUrl = COALESCE(:artistUrl, artistUrl) WHERE id = :id")
     abstract suspend fun updateSongMeta(id: String, title: String, artist: String, thumbnail: String?, duration: Long, artistUrl: String?)
 
     @Transaction

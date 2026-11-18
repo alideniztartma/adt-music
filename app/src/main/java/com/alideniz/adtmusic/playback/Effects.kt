@@ -225,12 +225,15 @@ class SleepTimer(private val scope: CoroutineScope) {
     private suspend fun fadeOutAndPause() {
         val p = player ?: return
         val start = p.volume
-        for (i in 10 downTo 0) {
-            p.volume = start * i / 10f
-            delay(250)
+        try {
+            for (i in 10 downTo 0) {
+                p.volume = start * i / 10f
+                delay(250)
+            }
+            p.pause()
+        } finally {
+            p.volume = start // iptal edilse de ses kısık kalmasın
         }
-        p.pause()
-        p.volume = start
     }
 
     companion object {

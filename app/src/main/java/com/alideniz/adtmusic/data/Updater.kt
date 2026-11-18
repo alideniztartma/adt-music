@@ -74,7 +74,7 @@ class Updater(private val context: Context, private val client: OkHttpClient, pr
 
     /** APK'yı indirir ve kurulum ekranını açar. */
     suspend fun downloadAndInstall(info: UpdateInfo) {
-        val file = withContext(Dispatchers.IO) {
+        val file = try { withContext(Dispatchers.IO) {
             val dir = File(context.cacheDir, "updates").apply { mkdirs() }
             dir.listFiles()?.forEach { it.delete() }
             val out = File(dir, "adt-music-${info.build}.apk")
@@ -97,8 +97,10 @@ class Updater(private val context: Context, private val client: OkHttpClient, pr
                 }
             }
             out
+        } } finally {
+            // Hata ya da iptalde de ilerleme sıfırlansın, "Güncelle" düğmesi geri gelsin
+            _progress.value = -1f
         }
-        _progress.value = -1f
         install(file)
     }
 

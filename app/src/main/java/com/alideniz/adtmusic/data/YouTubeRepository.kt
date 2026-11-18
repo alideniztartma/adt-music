@@ -160,7 +160,7 @@ class YouTubeRepository(
         HomeFeed(
             quickPicks = picks.take(20),
             quickPicksSeed = actualSeed,
-            trending = trend.take(30),
+            trending = trend.distinctBy { it.id }.take(30),
             featured = featured.await(),
             newReleases = albums.await(),
             followedSongs = followedJob.await(),
