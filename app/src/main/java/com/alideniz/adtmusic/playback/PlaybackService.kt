@@ -221,10 +221,12 @@ class PlaybackService : MediaLibraryService() {
             currentId = mediaItem.mediaId
             if (player.isPlaying) playStartedAt = SystemClock.elapsedRealtime()
             val song = mediaItem.toSong()
+            // Kuyruk değişti ama çalma başlamadıysa (ör. açılışta kaldığın yeri geri yükleme) dinlenmiş sayma
+            val countPlay = !(reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED && !player.playWhenReady)
             scope.launch {
                 runCatching {
                     c.dao.ensureSong(song)
-                    if (!c.settings.pauseHistory.value) {
+                    if (countPlay && !c.settings.pauseHistory.value) {
                         val now = System.currentTimeMillis()
                         c.dao.markPlayed(song.id, now)
                         c.dao.insertHistory(HistoryEntity(songId = song.id, playedAt = now))

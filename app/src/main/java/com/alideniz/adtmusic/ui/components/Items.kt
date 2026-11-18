@@ -439,3 +439,46 @@ fun Avatar(text: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
         Txt(text.take(2).uppercase(), AdtTheme.type.label, color = c.paper)
     }
 }
+
+// ============================================================ liste içi arama
+
+/** Türkçe harfleri ve aksanları sadeleştirir: "Aşk Şarkısı" → "ask sarkisi". */
+fun foldForSearch(s: String): String {
+    val lower = s.lowercase(java.util.Locale("tr"))
+        .replace('ı', 'i').replace('ş', 's').replace('ğ', 'g')
+        .replace('ü', 'u').replace('ö', 'o').replace('ç', 'c')
+    return java.text.Normalizer.normalize(lower, java.text.Normalizer.Form.NFD)
+        .replace(Regex("\\p{Mn}+"), "")
+}
+
+/** Şarkı adı ya da sanatçıda, sorgudaki tüm kelimeler geçiyorsa eşleşir. */
+fun Song.matchesQuery(foldedWords: List<String>): Boolean {
+    if (foldedWords.isEmpty()) return true
+    val hay = foldForSearch("$title $artist")
+    return foldedWords.all { it in hay }
+}
+
+fun queryWords(query: String): List<String> =
+    foldForSearch(query).split(' ').map { it.trim() }.filter { it.isNotEmpty() }
+
+/** Kütüphane listelerinin üstündeki küçük arama kutusu. */
+@Composable
+fun ListFilterField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Bu listede ara",
+) {
+    val c = AdtTheme.colors
+    TextInput(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = placeholder,
+        modifier = modifier,
+        style = AdtTheme.type.body,
+        leading = { AdtIcon(AdtIcons.Search, null, tint = c.muted, size = 20.dp) },
+        trailing = if (query.isNotEmpty()) {
+            { IconBtn(AdtIcons.Close, "Aramayı temizle", { onQueryChange("") }, tint = c.muted, size = 36.dp, iconSize = 18.dp) }
+        } else null,
+    )
+}

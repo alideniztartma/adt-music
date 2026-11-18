@@ -62,7 +62,7 @@ object CoverPalette {
 fun rememberCoverAccent(url: String?, fallback: Color = AdtOrange): Color {
     val context = LocalContext.current
     var color by remember { mutableStateOf(fallback) }
-    LaunchedEffect(url) {
+    LaunchedEffect(url, fallback) {
         color = runCatching { CoverPalette.accentFor(context, url) }.getOrNull() ?: fallback
     }
     return color

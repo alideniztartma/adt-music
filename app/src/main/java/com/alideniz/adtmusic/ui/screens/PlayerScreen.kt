@@ -904,6 +904,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
                                     offset.animateTo(0f)
                                 }
                             },
+                            onDragCancel = { scope.launch { offset.animateTo(0f) } },
                             onHorizontalDrag = { ch, dx -> ch.consume(); scope.launch { offset.snapTo(offset.value + dx) } },
                         )
                     },
@@ -922,7 +923,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
             ) {
                 PlayPauseIcon(state.isPlaying, c.paper, 22.dp)
             }
-            IconBtn(AdtIcons.Next, "Sonraki", { app.player.next() }, enabled = state.hasNext)
+            IconBtn(AdtIcons.Next, "Sonraki", { app.player.next() }, enabled = state.hasNext || state.repeatMode != androidx.media3.common.Player.REPEAT_MODE_OFF)
         }
     }
 }

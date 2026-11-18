@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +53,10 @@ import com.alideniz.adtmusic.ui.components.Cover
 import com.alideniz.adtmusic.ui.components.DownloadButton
 import com.alideniz.adtmusic.ui.components.IconBtn
 import com.alideniz.adtmusic.ui.components.Line
+import com.alideniz.adtmusic.ui.components.ListFilterField
 import com.alideniz.adtmusic.ui.components.LoadingBlock
+import com.alideniz.adtmusic.ui.components.matchesQuery
+import com.alideniz.adtmusic.ui.components.queryWords
 import com.alideniz.adtmusic.ui.components.MessageBlock
 import com.alideniz.adtmusic.ui.components.SectionTitle
 import com.alideniz.adtmusic.ui.components.press
@@ -276,7 +280,7 @@ fun ArtistScreen(name: String, thumb: String?) {
                             contentPadding = PaddingValues(horizontal = 20.dp),
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            items(d.albums, key = { it.url }) { ref ->
+                            items(d.albums.distinctBy { it.url }, key = { it.url }) { ref ->
                                 CollectionCard(ref, { ui.navigate(Routes.collection(ref.url, ref.kind)) })
                             }
                         }
@@ -332,7 +336,7 @@ fun MoodScreen(label: String, query: String) {
                             contentPadding = PaddingValues(horizontal = 20.dp),
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            items(lists, key = { it.url }) { ref ->
+                            items(lists.distinctBy { it.url }, key = { it.url }) { ref ->
                                 CollectionCard(ref, { ui.navigate(Routes.collection(ref.url, ref.kind)) })
                             }
                         }
@@ -368,6 +372,9 @@ fun LocalPlaylistScreen(id: Long) {
     val downloads by app.downloads.states.collectAsState()
     val liked = remember(likedIds) { likedIds.toSet() }
     val name = playlist?.name ?: ""
+    var query by rememberSaveable(id) { mutableStateOf("") }
+    val words = remember(query) { queryWords(query) }
+    val shownSongs = remember(songs, words) { if (words.isEmpty()) songs else songs.filter { it.matchesQuery(words) } }
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
@@ -449,6 +456,10 @@ fun LocalPlaylistScreen(id: Long) {
                     })
                     IconBtn(AdtIcons.Queue, "Sıraya ekle", { app.player.addToQueue(songs) })
                 }
+                if (songs.size > 1) {
+                    Spacer(Modifier.height(12.dp))
+                    ListFilterField(query, { query = it }, Modifier.padding(horizontal = 20.dp))
+                }
                 Spacer(Modifier.height(14.dp))
                 Line()
             }
@@ -464,9 +475,12 @@ fun LocalPlaylistScreen(id: Long) {
                 )
             }
         }
+        if (songs.isNotEmpty() && shownSongs.isEmpty()) {
+            item { MessageBlock("Sonuç yok", "\"$query\" bu listede bulunamadı.", icon = AdtIcons.Search) }
+        }
         songList(
-            songs, player.current?.id, player.isPlaying, liked, downloads, numbered = true,
-            onPlay = { app.player.play(songs, it) },
+            shownSongs, player.current?.id, player.isPlaying, liked, downloads, numbered = words.isEmpty(),
+            onPlay = { app.player.play(shownSongs, it) },
             onMore = { ui.show(SheetSpec.SongOptions(it, playlistId = id)) },
         )
         item { Spacer(Modifier.height(LocalBottomInset.current + 24.dp)) }

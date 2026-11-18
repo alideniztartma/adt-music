@@ -224,7 +224,8 @@ private fun AddToPlaylistContent(spec: SheetSpec.AddToPlaylist, ui: AppUi) {
     SheetItem(AdtIcons.Plus, "Yeni çalma listesi", {
         ui.show(
             SheetSpec.Input("Yeni çalma listesi", "", "Oluştur") { name ->
-                scope.launch {
+                // Panel değişince bu bileşenin scope'u iptal olur; uygulama scope'unu kullan.
+                app.appScope.launch {
                     app.dao.createPlaylistWith(name.ifBlank { "Yeni liste" }, spec.songs, null)
                     app.toast("\"$name\" oluşturuldu")
                 }
@@ -340,9 +341,9 @@ private fun SpeedContent(ui: AppUi) {
                 Txt("HIZ", AdtTheme.type.label, color = c.muted)
                 Txt("%.2fx".format(speed), AdtTheme.type.display)
             }
-            StepButton("−", "Yavaşlat") { app.player.setSpeed(((speed - 0.05f) * 20).let { kotlin.math.round(it) } / 20f) }
+            StepButton("−", "Yavaşlat") { app.player.setSpeed((((speed - 0.05f) * 20).let { kotlin.math.round(it) } / 20f).coerceIn(0.5f, 2f)) }
             Spacer(Modifier.width(8.dp))
-            StepButton("+", "Hızlandır") { app.player.setSpeed(((speed + 0.05f) * 20).let { kotlin.math.round(it) } / 20f) }
+            StepButton("+", "Hızlandır") { app.player.setSpeed((((speed + 0.05f) * 20).let { kotlin.math.round(it) } / 20f).coerceIn(0.5f, 2f)) }
         }
         AdtSlider(
             value = speed,

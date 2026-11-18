@@ -96,10 +96,10 @@ fun CommentsContent(spec: SheetSpec.Comments, ui: AppUi) {
         loading = true; error = null
         runCatching { app.youtube.comments(song.id) }
             .onSuccess { p ->
-                comments.clear(); comments.addAll(p.items)
+                comments.clear(); comments.addAll(p.items.distinctBy { it.id })
                 next = p.next; disabled = p.disabled; total = p.total
             }
-            .onFailure { error = it.message ?: "Bilinmeyen hata" }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; error = it.message ?: "Bilinmeyen hata" }
         loading = false
     }
 
@@ -111,7 +111,7 @@ fun CommentsContent(spec: SheetSpec.Comments, ui: AppUi) {
             runCatching { app.youtube.moreComments(song.id, page) }
                 .onSuccess { p ->
                     val known = comments.map { it.id }.toHashSet()
-                    comments.addAll(p.items.filter { it.id !in known })
+                    comments.addAll(p.items.filter { it.id !in known }.distinctBy { it.id })
                     next = p.next
                 }
                 .onFailure { app.toast("Daha fazla yorum yüklenemedi") }

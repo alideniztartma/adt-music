@@ -356,7 +356,7 @@ fun HomeScreen() {
                         contentPadding = PaddingValues(horizontal = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        items(feed.featured, key = { it.url }) { ref ->
+                        items(feed.featured.distinctBy { it.url }, key = { it.url }) { ref ->
                             CollectionCard(ref, { ui.navigate(Routes.collection(ref.url, ref.kind)) })
                         }
                     }
@@ -372,7 +372,7 @@ fun HomeScreen() {
                         contentPadding = PaddingValues(horizontal = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        items(feed.newReleases, key = { it.url }) { ref ->
+                        items(feed.newReleases.distinctBy { it.url }, key = { it.url }) { ref ->
                             CollectionCard(ref, { ui.navigate(Routes.collection(ref.url, ref.kind)) })
                         }
                     }

@@ -20,6 +20,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -39,6 +42,9 @@ import com.alideniz.adtmusic.ui.components.BtnStyle
 import com.alideniz.adtmusic.ui.components.Cover
 import com.alideniz.adtmusic.ui.components.DownloadButton
 import com.alideniz.adtmusic.ui.components.IconBtn
+import com.alideniz.adtmusic.ui.components.ListFilterField
+import com.alideniz.adtmusic.ui.components.matchesQuery
+import com.alideniz.adtmusic.ui.components.queryWords
 import com.alideniz.adtmusic.ui.components.Line
 import com.alideniz.adtmusic.ui.components.MessageBlock
 import com.alideniz.adtmusic.ui.components.SongRow
@@ -202,7 +208,8 @@ fun SongListScreen(
     emptyMessage: String,
     emptyIcon: ImageVector,
     extra: (@Composable () -> Unit)? = null,
-    trailingFor: ((Int) -> String?)? = null,
+    /** Satırları gruplamak için (ör. geçmişte gün). Grup değişince başlık gösterilir. */
+    groupOf: ((Int) -> String)? = null,
 ) {
     val app = LocalContext.current.container
     val ui = LocalAppUi.current
@@ -211,6 +218,14 @@ fun SongListScreen(
     val likedIds by app.likedIds.collectAsState()
     val downloads by app.downloads.states.collectAsState()
     val liked = remember(likedIds) { likedIds.toSet() }
+    var query by rememberSaveable { mutableStateOf("") }
+    val words = remember(query) { queryWords(query) }
+    // Görünen satırların asıl listedeki sırası
+    val shown = remember(songs, words) {
+        if (words.isEmpty()) songs.indices.toList()
+        else songs.indices.filter { songs[it].matchesQuery(words) }
+    }
+    val shownSongs = remember(songs, shown) { shown.map { songs[it] } }
 
     LazyColumn(Modifier.fillMaxSize()) {
         item {
@@ -221,10 +236,14 @@ fun SongListScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Btn("Çal", { app.player.play(songs) }, icon = AdtIcons.Play, style = BtnStyle.ACCENT)
-                    Btn("Karıştır", { app.player.play(songs, shuffle = true) }, icon = AdtIcons.Shuffle, style = BtnStyle.OUTLINE)
+                    Btn("Çal", { if (shownSongs.isNotEmpty()) app.player.play(shownSongs) }, icon = AdtIcons.Play, style = BtnStyle.ACCENT)
+                    Btn("Karıştır", { if (shownSongs.isNotEmpty()) app.player.play(shownSongs, shuffle = true) }, icon = AdtIcons.Shuffle, style = BtnStyle.OUTLINE)
                     Spacer(Modifier.weight(1f))
                     extra?.invoke()
+                }
+                if (songs.size > 1) {
+                    Spacer(Modifier.height(12.dp))
+                    ListFilterField(query, { query = it }, Modifier.padding(horizontal = 20.dp))
                 }
                 Spacer(Modifier.height(14.dp))
                 Line()
@@ -232,18 +251,24 @@ fun SongListScreen(
         }
         if (songs.isEmpty()) {
             item { MessageBlock(emptyTitle, emptyMessage, icon = emptyIcon) }
+        } else if (shown.isEmpty()) {
+            item { MessageBlock("Sonuç yok", "\"$query\" bu listede bulunamadı.", icon = AdtIcons.Search) }
         }
-        itemsIndexed(songs, key = { i, s -> "$i-${s.id}" }) { i, s ->
+        itemsIndexed(shownSongs, key = { j, s -> "${shown[j]}-${s.id}" }) { j, s ->
             Column {
-                trailingFor?.invoke(i)?.let { header ->
-                    Txt(
-                        header.uppercase(), AdtTheme.type.label, color = c.muted,
-                        modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp),
-                    )
+                groupOf?.let { g ->
+                    val header = g(shown[j])
+                    if (j == 0 || g(shown[j - 1]) != header) {
+                        Txt(
+                            header.uppercase(), AdtTheme.type.label, color = c.muted,
+                            modifier = Modifier.padding(start = 20.dp, top = 18.dp, bottom = 6.dp),
+                        )
+                    }
                 }
                 SongRow(
                     song = s,
-                    onClick = { app.player.play(songs, i) },
+                    // Arama yokken tüm listeyi, varsa yalnızca bulunanları sıraya koy
+                    onClick = { app.player.play(shownSongs, j) },
                     onMore = { ui.show(SheetSpec.SongOptions(s)) },
                     isCurrent = player.current?.id == s.id,
                     isPlaying = player.isPlaying,
@@ -336,14 +361,17 @@ fun HistoryScreen() {
                 })
             })
         },
-        trailingFor = { i -> if (i == 0 || days[i] != days[i - 1]) days[i] else null },
+        groupOf = { i -> days[i] },
     )
 }
 
 private fun dayLabel(at: Long, format: SimpleDateFormat): String {
+    // Gün sınırı yerel saate göre (UTC'ye göre gece 03:00'te değişmesin)
     val dayMs = 24 * 3600_000L
-    val today = System.currentTimeMillis() / dayMs
-    val d = at / dayMs
+    val tz = java.util.TimeZone.getDefault()
+    val now = System.currentTimeMillis()
+    val today = (now + tz.getOffset(now)) / dayMs
+    val d = (at + tz.getOffset(at)) / dayMs
     return when (today - d) {
         0L -> "Bugün"
         1L -> "Dün"
