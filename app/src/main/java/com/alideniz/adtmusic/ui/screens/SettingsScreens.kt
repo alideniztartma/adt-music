@@ -240,72 +240,10 @@ private fun ConnectionCard() {
     }
 }
 
-/** Oynatıcı tarzı seçimi: küçük önizlemelerle. */
+/** Oynatıcı tarzı seçimi: her oynatıcının küçük önizlemesiyle, yana kaydırmalı. */
 @Composable
 private fun PlayerStylePicker(selected: String, onSelect: (String) -> Unit) {
-    val c = AdtTheme.colors
-    Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        listOf("minimal" to "Minimal", "apple" to "Apple Music").forEach { (key, label) ->
-            val on = key == selected
-            Column(
-                Modifier
-                    .weight(1f)
-                    .border(if (on) 2.dp else 1.dp, if (on) c.accent else c.line)
-                    .press(label = label) { onSelect(key) }
-                    .padding(10.dp),
-            ) {
-                // küçük şematik önizleme
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(0.62f)
-                        .background(
-                            if (key == "apple") androidx.compose.ui.graphics.Brush.verticalGradient(
-                                listOf(Color(0xFF5B2A86), Color(0xFFB5453A), Color(0xFF1C1A2E))
-                            ) else androidx.compose.ui.graphics.SolidColor(c.paper)
-                        )
-                        .border(1.dp, c.line)
-                        .padding(10.dp),
-                ) {
-                    Column(Modifier.fillMaxSize()) {
-                        val fg = if (key == "apple") Color.White else c.ink
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(1f)
-                                .clip(if (key == "apple") androidx.compose.foundation.shape.RoundedCornerShape(8.dp) else androidx.compose.ui.graphics.RectangleShape)
-                                .background(if (key == "apple") Color.White.copy(alpha = 0.85f) else c.ink)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Box(Modifier.fillMaxWidth(0.7f).height(6.dp).background(fg))
-                        Spacer(Modifier.height(4.dp))
-                        Box(Modifier.fillMaxWidth(0.45f).height(4.dp).background(fg.copy(alpha = 0.5f)))
-                        Spacer(Modifier.weight(1f))
-                        Box(
-                            Modifier.fillMaxWidth().height(3.dp)
-                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                                .background(fg.copy(alpha = 0.4f))
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                            if (key == "apple") {
-                                repeat(3) { i -> Box(Modifier.size(if (i == 1) 14.dp else 10.dp).clip(CircleShape).background(fg)) }
-                            } else {
-                                Box(Modifier.size(16.dp).background(c.accent))
-                                Box(Modifier.size(width = 10.dp, height = 16.dp).border(1.dp, fg))
-                                Box(Modifier.size(width = 10.dp, height = 16.dp).border(1.dp, fg))
-                            }
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Txt(label, AdtTheme.type.bodyStrong, modifier = Modifier.weight(1f))
-                    if (on) AdtIcon(AdtIcons.Check, null, tint = c.accent, size = 16.dp)
-                }
-            }
-        }
-    }
+    PlayerStyleGallery(selected, onSelect)
 }
 
 private val ACCENTS = listOf(
@@ -495,6 +433,9 @@ fun SettingsScreen() {
             lyricsPlacement,
         ) { s.lyricsPlacement.set(it) }
         SwitchRow("Ses çubuğu", "Oynatıcıda cihaz sesini ayarlayan çubuk (Apple Music tarzında).", volumeBar) { s.playerVolumeBar.set(it) }
+
+        PlayerStyleOptions(playerStyle)
+        AnimationSettings()
 
         // ------------------------------------------------------------ sözler
         Group("Sözler")
@@ -916,5 +857,176 @@ fun UpdateContent(ui: com.alideniz.adtmusic.ui.AppUi) {
             }
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+// ============================================================ yeni oynatıcıların ayarları ve animasyonlar
+
+/** Seçili oynatıcıya özel ayarlar + bütün yeni oynatıcılar için ortak olanlar. */
+@Composable
+private fun PlayerStyleOptions(style: String) {
+    val app = LocalContext.current.container
+    val s = app.settings
+    val c = AdtTheme.colors
+    val vinylSpeed by s.vinylSpeed.flow.collectAsState()
+    val vinylBase by s.vinylBase.flow.collectAsState()
+    val cassette by s.cassetteColor.flow.collectAsState()
+    val glassBlur by s.glassBlur.flow.collectAsState()
+    val neon by s.neonColor.flow.collectAsState()
+    val ipod by s.ipodColor.flow.collectAsState()
+    val brutal by s.brutalColor.flow.collectAsState()
+    val seek by s.seekStyle.flow.collectAsState()
+    val like by s.likeAnimation.flow.collectAsState()
+    val marquee by s.titleMarquee.flow.collectAsState()
+    val upNext by s.showUpNext.flow.collectAsState()
+
+    when (style) {
+        "vinyl" -> {
+            Choice("Plak hızı", listOf("33" to "33 devir", "45" to "45 devir", "78" to "78 devir"), vinylSpeed) { s.vinylSpeed.set(it) }
+            Choice("Plak çalar zemini", listOf("wood" to "Ahşap", "dark" to "Koyu", "accent" to "Vurgu rengi"), vinylBase) { s.vinylBase.set(it) }
+        }
+        "cassette" -> Choice(
+            "Kaset rengi",
+            listOf("black" to "Siyah", "clear" to "Şeffaf", "orange" to "Turuncu", "blue" to "Mavi", "pink" to "Pembe"),
+            cassette,
+        ) { s.cassetteColor.set(it) }
+        "glass" -> SliderRow("Arka plan bulanıklığı", "%$glassBlur", glassBlur.toFloat(), 0f..100f) { s.glassBlur.set(it.toInt()) }
+        "neon" -> Choice(
+            "Neon rengi",
+            listOf("accent" to "Kapaktan", "pink" to "Pembe", "cyan" to "Camgöbeği", "lime" to "Fosforlu yeşil", "purple" to "Mor"),
+            neon,
+        ) { s.neonColor.set(it) }
+        "ipod" -> Choice(
+            "Kasa rengi",
+            listOf("white" to "Beyaz", "black" to "Siyah", "silver" to "Gümüş", "red" to "Kırmızı", "blue" to "Mavi"),
+            ipod,
+        ) { s.ipodColor.set(it) }
+        "brutal" -> Choice(
+            "Zemin rengi",
+            listOf("yellow" to "Sarı", "pink" to "Pembe", "lime" to "Yeşil", "blue" to "Mavi", "accent" to "Vurgu rengi"),
+            brutal,
+        ) { s.brutalColor.set(it) }
+    }
+    if (style != "minimal" && style != "apple") {
+        Choice(
+            "İlerleme çubuğu",
+            listOf("line" to "İnce çizgi", "thick" to "Kalın", "wave" to "Dalga", "dots" to "Noktalar", "pill" to "Hap"),
+            seek,
+        ) { s.seekStyle.set(it) }
+        SwitchRow("Sıradaki şarkıyı göster", "Kontrollerin altında küçük bir satır.", upNext) { s.showUpNext.set(it) }
+        if (style == "ipod") {
+            Txt(
+                "iPod'da tekerin üstünde parmağını döndür: bir tam tur ≈ 30 saniye sarar. MENU sözleri açar, orta düğme beğenir.",
+                AdtTheme.type.caption, color = c.muted, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+            )
+        }
+    }
+    Choice("Beğenince", listOf("burst" to "Kalp patlaması", "pop" to "Zıplama", "none" to "Sade"), like) { s.likeAnimation.set(it) }
+    SwitchRow("Uzun adlar kaysın", "Sığmayan şarkı adları yavaşça kayar.", marquee) { s.titleMarquee.set(it) }
+}
+
+@Composable
+private fun AnimationSettings() {
+    val app = LocalContext.current.container
+    val s = app.settings
+    val c = AdtTheme.colors
+    val cover by s.coverTransition.flow.collectAsState()
+    val page by s.pageTransition.flow.collectAsState()
+    val open by s.playerOpenAnimation.flow.collectAsState()
+    val press by s.pressAnimation.flow.collectAsState()
+    val speed by s.animationSpeed.flow.collectAsState()
+    val motion by s.backgroundMotion.flow.collectAsState()
+    val particles by s.particleEffect.flow.collectAsState()
+    val amount by s.particleAmount.flow.collectAsState()
+    val labels by s.navLabels.flow.collectAsState()
+
+    Group("Animasyonlar")
+    SliderRow(
+        "Animasyon hızı",
+        when {
+            speed < 0.75f -> "Yavaş"
+            speed > 1.4f -> "Hızlı"
+            else -> "Normal"
+        } + " · %.1fx".format(speed),
+        speed, 0.5f..2f,
+    ) { s.animationSpeed.set((kotlin.math.round(it * 10f) / 10f)) }
+    Choice(
+        "Sayfa geçişi",
+        listOf("slide" to "Kaydır", "fade" to "Soldur", "zoom" to "Yakınlaş", "rise" to "Yüksel", "none" to "Yok"),
+        page,
+    ) { s.pageTransition.set(it) }
+    Choice(
+        "Oynatıcı açılışı",
+        listOf("slide" to "Aşağıdan kayar", "zoom" to "Yakınlaşır", "pop" to "Yaylanır", "fade" to "Belirir"),
+        open,
+    ) { s.playerOpenAnimation.set(it) }
+    Choice(
+        "Şarkı değişince kapak",
+        listOf("slide" to "Kayar", "fade" to "Solar", "zoom" to "Yakınlaşır", "flip" to "Döner (3B)", "spin" to "Fırıl fırıl"),
+        cover,
+    ) { s.coverTransition.set(it) }
+    Txt(
+        "Kapak geçişi Plak, Kaset, Cam, Neon, iPod ve Brütalist oynatıcılarda çalışır.",
+        AdtTheme.type.caption, color = c.muted, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+    )
+    Choice(
+        "Düğmeye basınca",
+        listOf("shrink" to "Hafifçe küçülür", "bounce" to "Yaylanır", "pulse" to "Büyür", "none" to "Animasyonsuz"),
+        press,
+    ) { s.pressAnimation.set(it) }
+    Choice(
+        "Arka plan hareketi",
+        listOf("off" to "Durgun", "slow" to "Yavaş", "normal" to "Normal", "fast" to "Hızlı"),
+        motion,
+    ) { s.backgroundMotion.set(it) }
+    SwitchRow("Alt menüde yazılar", "Kapalıyken yalnızca simgeler görünür.", labels) { s.navLabels.set(it) }
+
+    Group("Efektler")
+    ParticlePicker(particles) { s.particleEffect.set(it) }
+    if (particles != "off") {
+        SliderRow("Yoğunluk", "%$amount", amount.toFloat(), 10f..100f) { s.particleAmount.set(it.toInt()) }
+    }
+    Txt(
+        "Efektler oynatıcının üstünde süzülür, dokunmaları engellemez. \"Animasyonları azalt\" açıkken gösterilmez.",
+        AdtTheme.type.caption, color = c.muted, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+    )
+}
+
+@Composable
+private fun SliderRow(title: String, value: String, current: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
+    val c = AdtTheme.colors
+    Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Row {
+            Txt(title, AdtTheme.type.bodyStrong, modifier = Modifier.weight(1f))
+            Txt(value, AdtTheme.type.caption, color = c.muted)
+        }
+        AdtSlider(current, onChange, range = range)
+    }
+    Line()
+}
+
+/** Efekt seçimi: her kutuda efektin canlı küçük önizlemesi. */
+@Composable
+private fun ParticlePicker(selected: String, onSelect: (String) -> Unit) {
+    val c = AdtTheme.colors
+    val items = listOf("off" to "Kapalı", "snow" to "Kar", "stars" to "Yıldızlar", "bubbles" to "Baloncuk", "confetti" to "Konfeti", "hearts" to "Kalpler")
+    androidx.compose.foundation.lazy.LazyRow(
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(items.size) { i ->
+            val (key, label) = items[i]
+            val on = key == selected
+            Column(
+                Modifier.width(96.dp).border(if (on) 2.dp else 1.dp, if (on) c.accent else c.line)
+                    .press(label = label) { onSelect(key) }.padding(8.dp),
+            ) {
+                Box(Modifier.fillMaxWidth().height(70.dp).clip(androidx.compose.ui.graphics.RectangleShape).background(Color(0xFF15131C))) {
+                    if (key != "off") ParticlePreview(key)
+                }
+                Spacer(Modifier.height(6.dp))
+                Txt(label, AdtTheme.type.caption, color = if (on) c.accent else c.ink, maxLines = 1)
+            }
+        }
     }
 }

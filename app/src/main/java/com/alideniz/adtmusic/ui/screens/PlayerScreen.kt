@@ -104,11 +104,20 @@ import kotlin.math.abs
 fun PlayerScreen() {
     val app = LocalContext.current.container
     val playerStyle by app.settings.playerStyle.flow.collectAsState()
-    if (playerStyle == "apple") {
-        ApplePlayerScreen()
-        return
+    Box(Modifier.fillMaxSize()) {
+        when (playerStyle) {
+            "apple" -> ApplePlayerScreen()
+            "vinyl" -> VinylPlayerScreen()
+            "cassette" -> CassettePlayerScreen()
+            "glass" -> GlassPlayerScreen()
+            "neon" -> NeonPlayerScreen()
+            "ipod" -> IpodPlayerScreen()
+            "brutal" -> BrutalPlayerScreen()
+            else -> MinimalPlayerScreen()
+        }
+        // Ayardaki parçacık efekti (kar, yıldız…) her oynatıcının üstünde süzülür
+        ParticleLayer()
     }
-    MinimalPlayerScreen()
 }
 
 @Composable

@@ -73,6 +73,9 @@ fun Txt(
 /** Dokunma titreşimi açık mı (Ayarlar → Akıcılık). */
 val LocalHapticsEnabled = androidx.compose.runtime.staticCompositionLocalOf { true }
 
+/** Düğmeye basınca animasyon: "shrink", "bounce", "pulse" ya da "none" (Ayarlar → Animasyonlar). */
+val LocalPressStyle = androidx.compose.runtime.staticCompositionLocalOf { "shrink" }
+
 /** Basınca hafifçe küçülen, dalga efekti olmayan tıklama. */
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.press(
@@ -88,7 +91,18 @@ fun Modifier.press(
     val pressed by source.collectIsPressedAsState()
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val hapticsOn = LocalHapticsEnabled.current
-    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(stiffness = 900f), label = "press")
+    val pressStyle = LocalPressStyle.current
+    val target = when (pressStyle) {
+        "none" -> 1f
+        "bounce" -> if (pressed) 0.88f else 1f
+        "pulse" -> if (pressed) 1.06f else 1f
+        else -> if (pressed) 0.96f else 1f
+    }
+    val scale by animateFloatAsState(
+        target,
+        if (pressStyle == "bounce") spring(dampingRatio = 0.32f, stiffness = 650f) else spring(stiffness = 900f),
+        label = "press",
+    )
     this
         .graphicsLayer { scaleX = scale; scaleY = scale }
         .combinedClickable(
