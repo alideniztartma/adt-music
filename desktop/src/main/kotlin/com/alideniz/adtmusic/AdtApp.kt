@@ -1,0 +1,134 @@
+package com.alideniz.adtmusic
+
+import com.alideniz.adtmusic.data.LyricsRepository
+import com.alideniz.adtmusic.data.NewPipeDownloader
+import com.alideniz.adtmusic.data.Settings
+import com.alideniz.adtmusic.data.YouTubeRepository
+import com.alideniz.adtmusic.data.db.AdtDatabase
+import com.alideniz.adtmusic.platform.Context
+import com.alideniz.adtmusic.playback.AudioEffects
+import com.alideniz.adtmusic.playback.DownloadTracker
+import com.alideniz.adtmusic.playback.MediaStack
+import com.alideniz.adtmusic.playback.PlayerConnection
+import com.alideniz.adtmusic.playback.SleepTimer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import okhttp3.OkHttpClient
+import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.localization.ContentCountry
+import org.schabi.newpipe.extractor.localization.Localization
+import java.util.concurrent.TimeUnit
+
+/** Uygulamanın tek kapsayıcısı (masaüstünde Application yok). */
+@Volatile
+var appContainerOrNull: AppContainer? = null
+    private set
+
+val appContainer: AppContainer
+    get() = appContainerOrNull ?: synchronized(AppContainer::class.java) {
+        appContainerOrNull ?: AppContainer(Context.instance).also { appContainerOrNull = it }
+    }
+
+/** Uygulama genelindeki tekil nesneler (basit, elle bağımlılık enjeksiyonu). */
+class AppContainer(val context: Context) {
+
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    val settings = Settings(context)
+
+    val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+
+    val database: AdtDatabase = AdtDatabase.create(context)
+    val dao = database.dao()
+
+    /** Beğenilen şarkı kimlikleri; bütün ekranlar aynı akışı paylaşır. */
+    val likedIds: StateFlow<Set<String>> = dao.likedIds()
+        .map { it.toSet() }
+        .stateIn(appScope, SharingStarted.Eagerly, emptySet())
+
+    /** Takip edilen sanatçı adları. */
+    val followed: StateFlow<Set<String>> = dao.followedNames()
+        .map { it.toSet() }
+        .stateIn(appScope, SharingStarted.Eagerly, emptySet())
+
+    /** YouTube sınırlamasına karşı geri çekilme ve durum bilgisi. */
+    val guard = com.alideniz.adtmusic.data.StreamGuard()
+    val youtube = YouTubeRepository(com.alideniz.adtmusic.data.FastResolver(settings), guard)
+    val lyrics = LyricsRepository(httpClient, dao)
+    val mixes = com.alideniz.adtmusic.data.Mixes(dao, youtube)
+    val updater = com.alideniz.adtmusic.data.Updater(context, httpClient, settings)
+    val wiki = com.alideniz.adtmusic.data.Wiki(context, httpClient)
+
+    val dataUsage = com.alideniz.adtmusic.playback.DataUsage(context, settings)
+    val media = MediaStack(context, settings, youtube, httpClient, dataUsage)
+    val downloads = DownloadTracker(context, media, settings, dao, appScope)
+    val effects = AudioEffects(settings)
+    val spectrum = com.alideniz.adtmusic.playback.Spectrum(context)
+    /** Başka bir ekrandan aramaya gönderilen sorgu (ör. etiketler). */
+    val pendingSearch = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val sleepTimer = SleepTimer(appScope)
+    val player = PlayerConnection(context, appScope)
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    /** Kullanıcıya gösterilecek kısa bildirimler (hata, "listeye eklendi" vb.). */
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
+
+    /** Yeni kazanılan rozetleri bulur ve kutlar. */
+    suspend fun checkBadges(announce: Boolean = true) {
+        val done = downloads.states.value.count { it.value.state == com.alideniz.adtmusic.playback.DlState.DONE }
+        val badges = runCatching { com.alideniz.adtmusic.data.Insights.badges(dao, done) }.getOrNull() ?: return
+        val known = settings.unlockedBadges.value.split(",").filter { it.isNotBlank() }.toSet()
+        val now = badges.filter { it.unlocked }.map { it.id }.toSet()
+        val fresh = badges.filter { it.unlocked && it.id !in known }
+        if (now != known) settings.unlockedBadges.set(now.joinToString(","))
+        // İlk açılışta eski başarımları tek tek duyurma
+        if (announce && known.isNotEmpty()) fresh.take(2).forEach { toast("${it.icon} Yeni rozet: ${it.title}") }
+        else if (announce && known.isEmpty() && fresh.size == 1) toast("${fresh.first().icon} Yeni rozet: ${fresh.first().title}")
+    }
+
+    /** İçerik ülkesini değiştirir (trendler ve öneriler o ülkeye göre gelir). */
+    fun setCountry(code: String) {
+        settings.contentCountry.set(code)
+        NewPipe.setupLocalization(Localization("tr", "TR"), ContentCountry(code))
+    }
+
+    fun toast(message: String) {
+        appScope.launch { _messages.emit(message) }
+    }
+
+    init {
+        // Beğenilenleri otomatik indir (ayar açıksa): yeni beğenilen şarkıyı yakala.
+        appScope.launch {
+            var previous: Set<String>? = null
+            dao.likedIds().collect { list ->
+                val now = list.toSet()
+                val prev = previous
+                previous = now
+                if (prev == null || !settings.autoDownloadLiked.value) return@collect
+                (now - prev).forEach { id ->
+                    dao.song(id)?.let { downloads.download(it.toSong()) }
+                }
+            }
+        }
+        NewPipe.init(
+            NewPipeDownloader(httpClient),
+            Localization("tr", "TR"),
+            ContentCountry(settings.contentCountry.value),
+        )
+    }
+}
+
+val Context.container: AppContainer get() = appContainer

@@ -8,7 +8,9 @@ plugins {
     id("com.google.devtools.ksp") version "2.1.0-1.0.29"
 }
 
-val appVersion = "1.5.0"
+val runNumber = System.getenv("GITHUB_RUN_NUMBER") ?: "0"
+// MSI güncellemesi için sürüm her derlemede artmalı: 1.5.<derleme no>
+val appVersion = "1.5.$runNumber"
 
 kotlin {
     compilerOptions {
@@ -93,3 +95,18 @@ compose.desktop {
         }
     }
 }
+
+// Sürüm bilgisi (Android'deki BuildConfig karşılığı): uygulama içi güncelleme denetimi kullanır.
+val genBuildInfo by tasks.registering {
+    val out = layout.buildDirectory.dir("generated/buildinfo")
+    val build = System.getenv("GITHUB_RUN_NUMBER") ?: "0"
+    inputs.property("build", build)
+    inputs.property("version", appVersion)
+    outputs.dir(out)
+    doLast {
+        val f = out.get().file("build-info.properties").asFile
+        f.parentFile.mkdirs()
+        f.writeText("version=$appVersion\ncode=10\nbuild=$build\n")
+    }
+}
+sourceSets["main"].resources.srcDir(genBuildInfo)
