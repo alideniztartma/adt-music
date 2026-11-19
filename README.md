@@ -279,6 +279,19 @@ app/src/main/java/com/alideniz/adtmusic/
 2. Telefonda aç, *"bilinmeyen kaynaklara izin ver"* de, kur.
 3. Sonraki güncellemeler uygulamanın içinden gelir.
 
+### 💻 Masaüstü (Windows + Linux)
+
+[**Releases**](https://github.com/alideniztartma/adt-music/releases) sayfasındaki son `ADT Music masaüstü N` sürümünden:
+
+| Sistem | Dosya | Not |
+|---|---|---|
+| Windows 10/11 | `.msi` (önerilen) ya da `.exe` · kurulumsuz: `windows-portable.zip` | Ses motoru (VLC) içinde gelir |
+| Ubuntu / Debian / Mint | `.deb` → `sudo apt install ./adt-music_*.deb` | Ses için: `sudo apt install vlc` |
+| Fedora / openSUSE | `.rpm` | Ses için VLC kurulu olmalı |
+| Diğer Linux | `linux-x64.tar.gz` → `ADT Music/bin/ADT Music` | Ses için VLC kurulu olmalı |
+
+Arayüz ve özellikler Android'le aynıdır; masaüstüne özel olarak sesi VLC çalar. Kısayollar: **Esc** geri, **Ctrl+Boşluk** çal/duraklat, **Ctrl+←/→** önceki/sonraki, klavyedeki medya tuşları. Ses görselleştirici, Bluetooth ile otomatik çalma ve bildirimler yalnızca Android'de var. Masaüstü kodu `desktop/` klasöründedir ve *"Masaüstü derle"* işiyle derlenir.
+
 ### 🛠️ Kendin derle
 
 Bilgisayara hiçbir şey kurman gerekmez — APK'yı GitHub derler.
