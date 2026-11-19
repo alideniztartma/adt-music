@@ -3,7 +3,10 @@ name: APK derle
 on:
   push:
     branches: [ main, master ]
+    # Yalnızca masaüstü değiştiyse APK yeniden derlenmesin
+    paths-ignore: [ 'desktop/**', '.github/workflows/desktop.yml' ]
   pull_request:
+    paths-ignore: [ 'desktop/**', '.github/workflows/desktop.yml' ]
   workflow_dispatch:
 
 permissions:
