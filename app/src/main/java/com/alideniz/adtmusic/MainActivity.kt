@@ -385,31 +385,60 @@ private fun AdtRoot(
     val bottomInset = navBarInset + 61.dp + if (hasSong) 66.dp else 0.dp
 
     val emphasized = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+    val pageAnim by app.settings.pageTransition.flow.collectAsState()
+    val openAnim by app.settings.playerOpenAnimation.flow.collectAsState()
+    val pressAnim by app.settings.pressAnimation.flow.collectAsState()
+    val animSpeed by app.settings.animationSpeed.flow.collectAsState()
+    val navLabels by app.settings.navLabels.flow.collectAsState()
+    /** Süreyi animasyon hızı ayarına göre ölçekler. */
+    fun d(ms: Int): Int = (ms / animSpeed.coerceIn(0.25f, 3f)).toInt()
+    val pageKind = if (reduce) "fade" else pageAnim
 
     CompositionLocalProvider(
         LocalAppUi provides ui,
         LocalBottomInset provides bottomInset,
         com.alideniz.adtmusic.ui.components.LocalHapticsEnabled provides haptics,
+        com.alideniz.adtmusic.ui.components.LocalPressStyle provides (if (reduce) "none" else pressAnim),
     ) {
         Box(Modifier.fillMaxSize().background(c.paper)) {
             NavHost(
                 navController = nav,
                 startDestination = Routes.HOME,
                 enterTransition = {
-                    if (reduce) fadeIn(tween(150))
-                    else slideInHorizontally(tween(380, easing = emphasized)) { it / 5 } + fadeIn(tween(260))
+                    when (pageKind) {
+                        "none" -> androidx.compose.animation.EnterTransition.None
+                        "fade" -> fadeIn(tween(d(220)))
+                        "zoom" -> androidx.compose.animation.scaleIn(tween(d(340), easing = emphasized), initialScale = 0.92f) + fadeIn(tween(d(260)))
+                        "rise" -> slideInVertically(tween(d(380), easing = emphasized)) { it / 8 } + fadeIn(tween(d(260)))
+                        else -> slideInHorizontally(tween(d(380), easing = emphasized)) { it / 5 } + fadeIn(tween(d(260)))
+                    }
                 },
                 exitTransition = {
-                    if (reduce) fadeOut(tween(120))
-                    else slideOutHorizontally(tween(380, easing = emphasized)) { -it / 12 } + fadeOut(tween(200))
+                    when (pageKind) {
+                        "none" -> androidx.compose.animation.ExitTransition.None
+                        "fade" -> fadeOut(tween(d(160)))
+                        "zoom" -> androidx.compose.animation.scaleOut(tween(d(340), easing = emphasized), targetScale = 1.06f) + fadeOut(tween(d(200)))
+                        "rise" -> fadeOut(tween(d(200)))
+                        else -> slideOutHorizontally(tween(d(380), easing = emphasized)) { -it / 12 } + fadeOut(tween(d(200)))
+                    }
                 },
                 popEnterTransition = {
-                    if (reduce) fadeIn(tween(150))
-                    else slideInHorizontally(tween(380, easing = emphasized)) { -it / 12 } + fadeIn(tween(260))
+                    when (pageKind) {
+                        "none" -> androidx.compose.animation.EnterTransition.None
+                        "fade" -> fadeIn(tween(d(220)))
+                        "zoom" -> androidx.compose.animation.scaleIn(tween(d(340), easing = emphasized), initialScale = 1.06f) + fadeIn(tween(d(260)))
+                        "rise" -> fadeIn(tween(d(260)))
+                        else -> slideInHorizontally(tween(d(380), easing = emphasized)) { -it / 12 } + fadeIn(tween(d(260)))
+                    }
                 },
                 popExitTransition = {
-                    if (reduce) fadeOut(tween(120))
-                    else slideOutHorizontally(tween(320, easing = emphasized)) { it / 5 } + fadeOut(tween(200))
+                    when (pageKind) {
+                        "none" -> androidx.compose.animation.ExitTransition.None
+                        "fade" -> fadeOut(tween(d(160)))
+                        "zoom" -> androidx.compose.animation.scaleOut(tween(d(300), easing = emphasized), targetScale = 0.92f) + fadeOut(tween(d(200)))
+                        "rise" -> slideOutVertically(tween(d(320), easing = emphasized)) { it / 8 } + fadeOut(tween(d(200)))
+                        else -> slideOutHorizontally(tween(d(320), easing = emphasized)) { it / 5 } + fadeOut(tween(d(200)))
+                    }
                 },
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -492,16 +521,25 @@ private fun AdtRoot(
                         MiniPlayer()
                     }
                 }
-                BottomTabs(currentRoute) { route -> navigateTo(nav, route) }
+                BottomTabs(currentRoute, navLabels) { route -> navigateTo(nav, route) }
             }
 
             // ---- tam ekran oynatıcı
             AnimatedVisibility(
                 visible = ui.playerExpanded && hasSong,
-                enter = if (reduce) fadeIn(tween(150)) else
-                    slideInVertically(spring(dampingRatio = 0.86f, stiffness = 420f)) { it } + fadeIn(tween(180)),
-                exit = if (reduce) fadeOut(tween(120)) else
-                    slideOutVertically(spring(dampingRatio = 1f, stiffness = 520f)) { it } + fadeOut(tween(220)),
+                enter = when {
+                    reduce -> fadeIn(tween(150))
+                    openAnim == "fade" -> fadeIn(tween(d(320)))
+                    openAnim == "zoom" -> androidx.compose.animation.scaleIn(tween(d(380), easing = emphasized), initialScale = 0.85f) + fadeIn(tween(d(260)))
+                    openAnim == "pop" -> androidx.compose.animation.scaleIn(spring(dampingRatio = 0.6f, stiffness = 380f * animSpeed), initialScale = 0.6f) + fadeIn(tween(d(160)))
+                    else -> slideInVertically(spring(dampingRatio = 0.86f, stiffness = 420f * animSpeed)) { it } + fadeIn(tween(d(180)))
+                },
+                exit = when {
+                    reduce -> fadeOut(tween(120))
+                    openAnim == "fade" -> fadeOut(tween(d(240)))
+                    openAnim == "zoom" || openAnim == "pop" -> androidx.compose.animation.scaleOut(tween(d(260)), targetScale = 0.85f) + fadeOut(tween(d(220)))
+                    else -> slideOutVertically(spring(dampingRatio = 1f, stiffness = 520f * animSpeed)) { it } + fadeOut(tween(d(220)))
+                },
             ) {
                 PlayerScreen()
             }
@@ -543,7 +581,7 @@ private fun tabOf(route: String?): String? = when (route) {
 }
 
 @Composable
-private fun BottomTabs(currentRoute: String?, onSelect: (String) -> Unit) {
+private fun BottomTabs(currentRoute: String?, labels: Boolean, onSelect: (String) -> Unit) {
     val c = AdtTheme.colors
     val activeTab = tabOf(currentRoute)
     Column(Modifier.fillMaxWidth().background(c.paper)) {
@@ -561,10 +599,12 @@ private fun BottomTabs(currentRoute: String?, onSelect: (String) -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(Modifier.width(barWidth).height(3.dp).background(c.accent))
-                    Spacer(Modifier.height(9.dp))
-                    AdtIcon(tab.icon, null, tint = tint, size = 22.dp)
-                    Spacer(Modifier.height(4.dp))
-                    Txt(tab.label.uppercase(), AdtTheme.type.label.copy(fontSize = AdtTheme.type.label.fontSize * 0.85f), color = tint)
+                    Spacer(Modifier.height(if (labels) 9.dp else 15.dp))
+                    AdtIcon(tab.icon, tab.label, tint = tint, size = if (labels) 22.dp else 26.dp)
+                    if (labels) {
+                        Spacer(Modifier.height(4.dp))
+                        Txt(tab.label.uppercase(), AdtTheme.type.label.copy(fontSize = AdtTheme.type.label.fontSize * 0.85f), color = tint)
+                    }
                 }
             }
         }

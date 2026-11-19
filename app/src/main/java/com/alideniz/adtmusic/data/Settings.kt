@@ -121,7 +121,7 @@ class Settings(context: Context) {
     val watcherCursor = Pref("watcher_cursor", 0)
 
     // Oynatıcı düzeni
-    /** "minimal" veya "apple" */
+    /** "minimal", "apple", "vinyl", "cassette", "glass", "neon", "ipod", "brutal" */
     val playerStyle = Pref("player_style", "minimal")
     /** "large", "medium", "small" veya "none" (kapaksız) */
     val coverSize = Pref("cover_size", "large")
@@ -130,6 +130,47 @@ class Settings(context: Context) {
     val playerVolumeBar = Pref("player_volume_bar", true)
     /** Uygulama simgesi vurgu rengini izlesin. */
     val iconFollowsAccent = Pref("icon_follows_accent", true)
+
+    // Yeni oynatıcılar ve animasyonlar
+    /** Şarkı değişince kapak geçişi: "slide", "fade", "zoom", "flip", "spin" */
+    val coverTransition = Pref("cover_transition", "slide")
+    /** Sayfa geçişi: "slide", "fade", "zoom", "rise", "none" */
+    val pageTransition = Pref("page_transition", "slide")
+    /** Oynatıcının açılışı: "slide", "fade", "zoom", "pop" */
+    val playerOpenAnimation = Pref("player_open_animation", "slide")
+    /** Düğmeye basınca: "shrink", "bounce", "pulse", "none" */
+    val pressAnimation = Pref("press_animation", "shrink")
+    /** Tüm animasyonların hızı (0.5 = yavaş, 2 = hızlı) */
+    val animationSpeed = Pref("animation_speed", 1f)
+    /** Oynatıcı üstünde efekt: "off", "snow", "stars", "bubbles", "confetti", "hearts" */
+    val particleEffect = Pref("particle_effect", "off")
+    /** Efekt yoğunluğu (10..100) */
+    val particleAmount = Pref("particle_amount", 40)
+    /** İlerleme çubuğu (yeni oynatıcılarda): "line", "thick", "wave", "dots", "pill" */
+    val seekStyle = Pref("seek_style", "line")
+    /** Beğenince: "pop", "burst", "none" */
+    val likeAnimation = Pref("like_animation", "burst")
+    /** Arka plan hareketi: "off", "slow", "normal", "fast" */
+    val backgroundMotion = Pref("background_motion", "normal")
+    val titleMarquee = Pref("title_marquee", true)
+    /** Sıradaki şarkı satırı (yeni oynatıcılarda) */
+    val showUpNext = Pref("show_up_next", true)
+    /** Alt menüde yazılar */
+    val navLabels = Pref("nav_labels", true)
+    /** Plak dönüş hızı: "33", "45", "78" */
+    val vinylSpeed = Pref("vinyl_speed", "33")
+    /** Plak zemini: "wood", "dark", "accent" */
+    val vinylBase = Pref("vinyl_base", "wood")
+    /** Kaset rengi: "black", "clear", "orange", "blue", "pink" */
+    val cassetteColor = Pref("cassette_color", "black")
+    /** Cam oynatıcıda bulanıklık (0..100) */
+    val glassBlur = Pref("glass_blur", 60)
+    /** Neon rengi: "accent", "pink", "cyan", "lime", "purple" */
+    val neonColor = Pref("neon_color", "accent")
+    /** iPod kasası: "white", "black", "silver", "red", "blue" */
+    val ipodColor = Pref("ipod_color", "white")
+    /** Brütalist renk: "yellow", "pink", "lime", "blue", "accent" */
+    val brutalColor = Pref("brutal_color", "yellow")
 
     // Söz görünümü
     /** "extrabold", "bold" veya "medium" */
